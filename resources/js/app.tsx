@@ -4,12 +4,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
-import Dashboard from "./pages/Dashboard";
-import Profile from "./pages/Profile";
-import PassDetails from "./pages/PassDetails";
-import PassManagement from "./pages/PassManagement";
-import NotFound from "./pages/NotFound";
+
+import { routes } from "./routes/routes";
 
 const queryClient = new QueryClient();
 
@@ -20,12 +16,9 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/pass/:id" element={<PassDetails />} />
-          <Route path="/passes" element={<PassManagement />} />
-          <Route path="*" element={<NotFound />} />
+          {routes.map((route) => (
+            <Route key={route.path} path={route.path} element={route.element} />
+          ))}
         </Routes>
       </BrowserRouter>
     </TooltipProvider>

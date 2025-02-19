@@ -1,9 +1,9 @@
-import { Button } from "@/components/ui/button";
-import { PassPreview } from "@/components/PassPreview";
+import { Button } from "../components/ui/button";
+import { PassPreview } from "../components/PassPreview";
 import { Check, X, User, Clock, Building2, IdCard } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { SidebarProvider, SidebarTrigger, Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
-import { Card, CardContent } from "@/components/ui/card";
+import { useToast } from "../hooks/use-toast";
+import { SidebarProvider, SidebarTrigger, Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "../components/ui/sidebar";
+import { Card, CardContent } from "../components/ui/card";
 
 const PassDetails = () => {
   const { toast } = useToast();

@@ -1,6 +1,5 @@
-
-import { PassRequestForm } from "@/components/PassRequestForm";
-import { PassPreview } from "@/components/PassPreview";
+import { PassRequestForm } from "../components/PassRequestForm";
+import { PassPreview } from "../components/PassPreview";
 
 const Index = () => {
   const samplePass = {

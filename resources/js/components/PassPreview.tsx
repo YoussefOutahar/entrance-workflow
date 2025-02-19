@@ -1,5 +1,5 @@
 
-import { Card } from "@/components/ui/card";
+import { Card } from "./ui/card";
 import { StatusBadge } from "./StatusBadge";
 
 interface PassPreviewProps {
