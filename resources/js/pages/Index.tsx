@@ -1,4 +1,3 @@
-// pages/Index.tsx
 import { PassRequestForm } from "../components/PassRequestForm";
 import { PassPreview } from "../components/PassPreview";
 
