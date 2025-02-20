@@ -5,4 +5,6 @@ export const PATHS = {
     PASS_DETAILS: '/pass/:id',
     PASS_MANAGEMENT: '/passes',
     NOT_FOUND: '*',
+
+    AUTH: '/auth',
 };

@@ -1,7 +1,7 @@
-import { ReactNode, useEffect } from 'react';
-import { Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { authStorage } from './services/LocalStorage/AuthStorage';
-import LoadingSpinner from './components/layout/LoadingSpinner';
+import { ReactNode, useEffect } from "react";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
+import { authStorage } from "./services/LocalStorage/AuthStorage";
+import LoadingSpinner from "./components/layout/LoadingSpinner";
 
 interface AuthGuardProps {
     children: ReactNode;
@@ -9,14 +9,10 @@ interface AuthGuardProps {
 }
 
 export const DEFAULT_REDIRECTS = {
-    ROLE_USER: '/',
+    ROLE_USER: "/",
 } as const;
 
-const PUBLIC_PATHS = [
-    '/',
-    '/auth/signin',
-    '/auth/forgot-password',
-];
+const PUBLIC_PATHS = ["/", "/auth", "/auth/forgot-password"];
 
 const AuthGuard = ({ children, allowedRoles }: AuthGuardProps) => {
     const location = useLocation();
@@ -28,7 +24,11 @@ const AuthGuard = ({ children, allowedRoles }: AuthGuardProps) => {
 
     useEffect(() => {
         if (token && role && isPublicPath) {
-            navigate(DEFAULT_REDIRECTS[role as keyof typeof DEFAULT_REDIRECTS] || '/', { replace: true });
+            navigate(
+                DEFAULT_REDIRECTS[role as keyof typeof DEFAULT_REDIRECTS] ||
+                    "/",
+                { replace: true }
+            );
         }
     }, [token, role, location]);
 
@@ -41,15 +41,23 @@ const AuthGuard = ({ children, allowedRoles }: AuthGuardProps) => {
     }
 
     if (!token) {
-        return <Navigate to="/auth/signin" state={{ from: location }} replace />;
+        return <Navigate to="/auth" state={{ from: location }} replace />;
     }
 
     if (!allowedRoles) {
         return <>{children}</>;
     }
 
-    if (!allowedRoles.includes(role || '')) {
-        return <Navigate to={DEFAULT_REDIRECTS[role as keyof typeof DEFAULT_REDIRECTS] || '/'} replace />;
+    if (!allowedRoles.includes(role || "")) {
+        return (
+            <Navigate
+                to={
+                    DEFAULT_REDIRECTS[role as keyof typeof DEFAULT_REDIRECTS] ||
+                    "/"
+                }
+                replace
+            />
+        );
     }
 
     return <>{children}</>;

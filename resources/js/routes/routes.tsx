@@ -1,6 +1,8 @@
 import { lazy } from 'react';
 import { PATHS } from './paths';
 
+const Auth = lazy(() => import('../pages/Auth/Auth'));
+
 const Index = lazy(() => import('../pages/Index'));
 const Dashboard = lazy(() => import('../pages/Dashboard'));
 const NotFound = lazy(() => import('../pages/NotFound'));
@@ -8,7 +10,11 @@ const PassDetails = lazy(() => import('../pages/PassDetails'));
 const PassManagement = lazy(() => import('../pages/PassManagement'));
 const Profile = lazy(() => import('../pages/Profile'));
 
-export const routes = [
+export const authRoutes = [
+    { path: PATHS.AUTH, element: <Auth /> },
+];
+
+export const routes: AppRoute[] = [
     { path: PATHS.INDEX, element: <Index /> },
     { path: PATHS.DASHBOARD, element: <Dashboard /> },
     { path: PATHS.NOT_FOUND, element: <NotFound /> },
@@ -21,5 +27,6 @@ export const routes = [
 export type AppRoute = {
     path: string;
     element: React.ReactNode;
+    role?: string;
 };
 

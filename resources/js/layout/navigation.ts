@@ -1,20 +1,72 @@
-import { useTranslation } from 'react-i18next';
+// config/sidebarItems.ts
+import { 
+  LayoutDashboard, 
+  BadgeCheck, 
+  Users, 
+  Shield, 
+  User, 
+  Settings 
+} from "lucide-react";
 import { PATHS } from '../routes/paths';
-import { Building2, FileText, LayoutDashboard, ListCollapse, ListTree, Package, Plus, Receipt, Settings, Users } from 'lucide-react';
+import { LucideIcon } from 'lucide-react';
 
-export const useNavigationRoutes = () => {
-  const { t } = useTranslation('navigation');
+export interface SidebarItem {
+  title: string;
+  icon: LucideIcon;
+  url: string;
+}
 
-  return [
-    {
-      path: PATHS.INDEX,
-      label: t('menu.dashboard'),
-      icon: LayoutDashboard,
-    },
-    {
-      path: PATHS.DASHBOARD,
-      label: t('menu.newArrival'),
-      icon: Plus,
-    },
-  ];
-};
+export interface SidebarGroup {
+  group: string;
+  items: SidebarItem[];
+}
+
+export type SidebarItems = SidebarGroup[];
+
+export const sidebarItems: SidebarItems = [
+  {
+    group: "Overview",
+    items: [
+      {
+        title: "Dashboard",
+        icon: LayoutDashboard,
+        url: PATHS.DASHBOARD
+      },
+      {
+        title: "Pass Management",
+        icon: BadgeCheck,
+        url: PATHS.PASS_MANAGEMENT
+      }
+    ]
+  },
+  {
+    group: "Management",
+    items: [
+      {
+        title: "Users",
+        icon: Users,
+        url: "/users"
+      },
+      {
+        title: "Security",
+        icon: Shield,
+        url: "/security"
+      }
+    ]
+  },
+  {
+    group: "Settings",
+    items: [
+      {
+        title: "Profile",
+        icon: User,
+        url: PATHS.PROFILE
+      },
+      {
+        title: "Settings",
+        icon: Settings,
+        url: "/settings"
+      }
+    ]
+  }
+];
