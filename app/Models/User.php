@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Filament\Models\Contracts\FilamentUser;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -9,8 +10,10 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Filament\Panel;
+use Filament\Models\Contracts\HasName;
 
-class User extends Authenticatable implements MustVerifyEmail
+class User extends Authenticatable implements MustVerifyEmail, FilamentUser, HasName
 {
     use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
 
@@ -19,26 +22,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'email',
         'password',
         'display_name',
-        'given_name',
-        'surname',
-        'initials',
-        'employee_id',
-        'company',
-        'department',
-        'title',
-        'manager_id',
-        'office_phone',
-        'mobile_phone',
-        'office_location',
-        'street_address',
-        'city',
-        'state',
-        'postal_code',
-        'country',
         'is_active',
-        'guid',
-        'distinguished_name',
-        'group_memberships',
         'two_factor_secret',
         'two_factor_enabled',
         'email_verified_at',
@@ -47,8 +31,6 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $hidden = [
         'password',
         'remember_token',
-        'guid',
-        'distinguished_name',
         'two_factor_secret',
     ];
 
@@ -57,7 +39,6 @@ class User extends Authenticatable implements MustVerifyEmail
         'password_last_set' => 'datetime',
         'account_expires_at' => 'datetime',
         'is_active' => 'boolean',
-        'group_memberships' => 'array',
         'password' => 'hashed',
         'two_factor_enabled' => 'boolean',
     ];
@@ -76,6 +57,18 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $this->roles()->whereIn('slug', $roles)->exists();
     }
+
+    public function canAccessPanel(Panel $panel): bool
+    {
+        \Log::info('User has admin role: ' . $this->hasRole('admin'));
+        return $this->hasRole('admin');
+    }
+
+    public function getFilamentName(): string
+    {
+        return $this->display_name ?? $this->username;
+    }
+
 
     public function activities()
     {
