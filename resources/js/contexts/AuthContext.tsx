@@ -1,33 +1,55 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { User } from '../types/users';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { UserData } from '../types/auth';
+import { authStorage } from '../services/LocalStorage/AuthStorage';
 
 interface AuthContextType {
-    user: User | null;
+    user: UserData | null;
     token: string | null;
-    login: (user: User, token: string) => void;
-    logout: () => void;
+    refreshToken: string | null;
+    isAuthenticated: boolean;
+    setAuthState: (user: UserData, token: string, refreshToken: string) => void;
+    clearAuth: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const [user, setUser] = useState<User | null>(null);
-    const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
+    const [user, setUser] = useState<UserData | null>(authStorage.getUser());
+    const [token, setToken] = useState<string | null>(authStorage.getToken());
+    const [refreshToken, setRefreshToken] = useState<string | null>(authStorage.getRefreshToken());
+    const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!!token && !!user);
 
-    const login = (user: User, token: string) => {
+    const setAuthState = (user: UserData, token: string, refreshToken: string) => {
         setUser(user);
         setToken(token);
-        localStorage.setItem('token', token);
+        setRefreshToken(refreshToken);
+        setIsAuthenticated(true);
+        authStorage.setUser(user);
+        authStorage.setToken(token);
+        authStorage.setRefreshToken(refreshToken);
     };
 
-    const logout = () => {
+    const clearAuth = () => {
         setUser(null);
         setToken(null);
-        localStorage.removeItem('token');
+        setRefreshToken(null);
+        setIsAuthenticated(false);
+        authStorage.clearAuth();
     };
 
+    useEffect(() => {
+        setIsAuthenticated(!!token && !!user);
+    }, [token, user]);
+
     return (
-        <AuthContext.Provider value={{ user, token, login, logout }}>
+        <AuthContext.Provider value={{
+            user,
+            token,
+            refreshToken,
+            isAuthenticated,
+            setAuthState,
+            clearAuth
+        }}>
             {children}
         </AuthContext.Provider>
     );

@@ -10,6 +10,7 @@ import { DarkModeProvider } from "./contexts/DarkModeContext";
 import { Suspense } from "react";
 import LoadingSpinner from "./components/layout/LoadingSpinner";
 import AuthGuard from "./AuthGuard";
+import { AuthProvider } from "./contexts/AuthContext";
 
 const queryClient = new QueryClient();
 
@@ -19,53 +20,55 @@ const App = () => (
             <Toaster />
 
             <DarkModeProvider>
-                <BrowserRouter>
-                    <Routes>
-                        {authRoutes.map(({ path, element }) => (
-                            <Route
-                                key={path}
-                                path={path}
-                                element={
-                                    <Suspense
-                                        fallback={
-                                            <LoadingSpinner
-                                                size="lg"
-                                                fullScreen
-                                                variant="primary"
-                                            />
-                                        }
-                                    >
-                                        {element}
-                                    </Suspense>
-                                }
-                            />
-                        ))}
+                <AuthProvider>
+                    <BrowserRouter>
+                        <Routes>
+                            {authRoutes.map(({ path, element }) => (
+                                <Route
+                                    key={path}
+                                    path={path}
+                                    element={
+                                        <Suspense
+                                            fallback={
+                                                <LoadingSpinner
+                                                    size="lg"
+                                                    fullScreen
+                                                    variant="primary"
+                                                />
+                                            }
+                                        >
+                                            {element}
+                                        </Suspense>
+                                    }
+                                />
+                            ))}
 
-                        {routes.map(({ path, element, role }) => (
-                            <Route
-                                key={path}
-                                path={path}
-                                element={
-                                    <AuthGuard>
-                                        <AppLayout>
-                                            <Suspense
-                                                fallback={
-                                                    <LoadingSpinner
-                                                        size="lg"
-                                                        container
-                                                        variant="primary"
-                                                    />
-                                                }
-                                            >
-                                                {element}
-                                            </Suspense>
-                                        </AppLayout>
-                                    </AuthGuard>
-                                }
-                            />
-                        ))}
-                    </Routes>
-                </BrowserRouter>
+                            {routes.map(({ path, element, role }) => (
+                                <Route
+                                    key={path}
+                                    path={path}
+                                    element={
+                                        <AuthGuard>
+                                            <AppLayout>
+                                                <Suspense
+                                                    fallback={
+                                                        <LoadingSpinner
+                                                            size="lg"
+                                                            container
+                                                            variant="primary"
+                                                        />
+                                                    }
+                                                >
+                                                    {element}
+                                                </Suspense>
+                                            </AppLayout>
+                                        </AuthGuard>
+                                    }
+                                />
+                            ))}
+                        </Routes>
+                    </BrowserRouter>
+                </AuthProvider>
             </DarkModeProvider>
         </TooltipProvider>
     </QueryClientProvider>

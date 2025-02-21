@@ -1,4 +1,5 @@
-import axiosInstance from "../config/AxiosConfig";
+import axiosInstance from "../config/axios.config";
+import { API_ROUTES } from "../config/api.config";
 import { VisitorPass, VisitorPassFormData } from "../types/visitorPass";
 
 export class VisitorPassService {
@@ -29,7 +30,9 @@ export class VisitorPassService {
         };
     }> {
         try {
-            const response = await axiosInstance.get(`/auth/visitor-passes?page=${page}`);
+            const response = await axiosInstance.get(
+                `${API_ROUTES.VISITOR_PASSES.BASE}?page=${page}`
+            );
             return response.data;
         } catch (error) {
             console.error('Error fetching visitor passes:', error);
@@ -39,7 +42,9 @@ export class VisitorPassService {
 
     static async getById(id: number): Promise<VisitorPass> {
         try {
-            const response = await axiosInstance.get(`/auth/visitor-passes/${id}`);
+            const response = await axiosInstance.get(
+                `${API_ROUTES.VISITOR_PASSES.BASE}/${id}`
+            );
             return response.data.data;
         } catch (error) {
             console.error(`Error fetching visitor pass ${id}:`, error);
@@ -57,29 +62,23 @@ export class VisitorPassService {
                 }
             });
     
-            // Debug files
-            console.log('Files to upload:', files);
-            
             if (files) {
-                Array.from(files).forEach((file, index) => {
-                    console.log(`Adding file ${index}:`, file.name, file.type, file.size);
+                Array.from(files).forEach((file) => {
                     formData.append(`files[]`, file);
                 });
             }
     
-            // Add this to see the complete request
-            const response = await axiosInstance.post('/auth/visitor-passes', formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
-                // Add this to see the complete request
-                onUploadProgress: (progressEvent) => {
-                    console.log('Upload Progress:', progressEvent);
+            const response = await axiosInstance.post(
+                API_ROUTES.VISITOR_PASSES.BASE, 
+                formData,
+                {
+                    headers: {
+                        'Content-Type': 'multipart/form-data',
+                    }
                 }
-            });
+            );
             return response.data.data;
         } catch (error: any) {
-            // Enhanced error logging
             console.error('Error creating visitor pass:', {
                 error: error,
                 response: error.response?.data,
@@ -95,11 +94,15 @@ export class VisitorPassService {
             const formData = this.formatFormData(data as any, files);
             formData.append('_method', 'PUT');
 
-            const response = await axiosInstance.post(`/auth/visitor-passes/${id}`, formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
-            });
+            const response = await axiosInstance.post(
+                `${API_ROUTES.VISITOR_PASSES.BASE}/${id}`, 
+                formData,
+                {
+                    headers: {
+                        'Content-Type': 'multipart/form-data',
+                    },
+                }
+            );
             return response.data.data;
         } catch (error) {
             console.error(`Error updating visitor pass ${id}:`, error);
@@ -109,7 +112,7 @@ export class VisitorPassService {
 
     static async delete(id: number): Promise<void> {
         try {
-            await axiosInstance.delete(`/auth/visitor-passes/${id}`);
+            await axiosInstance.delete(`${API_ROUTES.VISITOR_PASSES.BASE}/${id}`);
         } catch (error) {
             console.error(`Error deleting visitor pass ${id}:`, error);
             throw error;
@@ -124,7 +127,7 @@ export class VisitorPassService {
             });
 
             const response = await axiosInstance.post(
-                `/auth/visitor-passes/${visitorPassId}/files`,
+                `${API_ROUTES.VISITOR_PASSES.BASE}/${visitorPassId}/files`,
                 formData,
                 {
                     headers: {
@@ -141,7 +144,7 @@ export class VisitorPassService {
 
     static async deleteFile(fileId: number): Promise<void> {
         try {
-            await axiosInstance.delete(`/auth/files/${fileId}`);
+            await axiosInstance.delete(`${API_ROUTES.VISITOR_PASSES.FILES}/${fileId}`);
         } catch (error) {
             console.error(`Error deleting file ${fileId}:`, error);
             throw error;

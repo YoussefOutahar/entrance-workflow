@@ -3,37 +3,19 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
-use Illuminate\Http\Request;
+use App\Http\Requests\Auth\LoginRequest;
+use App\Http\Requests\Auth\RegisterRequest;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\Response;
 
 class AuthController extends Controller
 {
-    public function register(Request $request)
+    public function register(RegisterRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'username' => 'required|string|max:255|unique:users',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8',
-            'display_name' => 'required|string|max:255',
-            'given_name' => 'required|string|max:255',
-            'surname' => 'required|string|max:255',
-            'initials' => 'nullable|string|max:10',
-            'employee_id' => 'nullable|string|max:50',
-            'company' => 'nullable|string|max:255',
-            'department' => 'nullable|string|max:255',
-            'title' => 'nullable|string|max:255',
-            'manager_id' => 'nullable|exists:users,id',
-            'office_phone' => 'nullable|string|max:20',
-            'mobile_phone' => 'nullable|string|max:20',
-            'office_location' => 'nullable|string|max:255',
-            'street_address' => 'nullable|string|max:255',
-            'city' => 'nullable|string|max:255',
-            'state' => 'nullable|string|max:255',
-            'postal_code' => 'nullable|string|max:20',
-            'country' => 'nullable|string|max:2',
-        ]);
+        $validated = $request->validated();
 
         $user = User::create([
             ...$validated,
@@ -46,58 +28,94 @@ class AuthController extends Controller
         $refreshToken = $user->createToken('refresh_token')->plainTextToken;
 
         return response()->json([
-            'token' => $token,
-            'refreshToken' => $refreshToken,
-            'user' => $user
-        ], 201);
+            'status' => 'success',
+            'message' => 'User successfully registered',
+            'data' => [
+                'user' => $user,
+                'token' => $token,
+                'refreshToken' => $refreshToken,
+            ]
+        ], Response::HTTP_CREATED);
     }
 
-    public function login(Request $request)
+    public function login(LoginRequest $request): JsonResponse
     {
-        $request->validate([
-            'email' => 'required|email',
-            'password' => 'required',
-        ]);
+        try {
+            if (!Auth::attempt($request->only('email', 'password'))) {
+                throw ValidationException::withMessages([
+                    'email' => ['The provided credentials are incorrect.'],
+                ]);
+            }
 
-        if (!Auth::attempt($request->only('email', 'password'))) {
-            throw ValidationException::withMessages([
-                'email' => ['The provided credentials are incorrect.'],
+            $user = User::where('email', $request->email)->firstOrFail();
+
+            if (!$user->is_active) {
+                throw ValidationException::withMessages([
+                    'email' => ['This account has been deactivated.'],
+                ]);
+            }
+
+            // Revoke all existing tokens
+            $user->tokens()->delete();
+
+            $token = $user->createToken('auth_token')->plainTextToken;
+            $refreshToken = $user->createToken('refresh_token')->plainTextToken;
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Successfully logged in',
+                'data' => [
+                    'user' => $user,
+                    'token' => $token,
+                    'refreshToken' => $refreshToken,
+                ]
             ]);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Authentication failed',
+                'errors' => $e->errors(),
+            ], Response::HTTP_UNAUTHORIZED);
         }
+    }
 
-        $user = User::where('email', $request->email)->firstOrFail();
+    public function logout(): JsonResponse
+    {
+        Auth::user()->tokens()->delete();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Successfully logged out',
+        ]);
+    }
+
+    public function refresh(): JsonResponse
+    {
+        $user = Auth::user();
+
+        // Revoke all existing tokens except the current one
+        $user->tokens()->where('id', '!=', Auth::user()->currentAccessToken()->id)->delete();
+
         $token = $user->createToken('auth_token')->plainTextToken;
         $refreshToken = $user->createToken('refresh_token')->plainTextToken;
 
         return response()->json([
-            'token' => $token,
-            'refreshToken' => $refreshToken,
-            'user' => $user
+            'status' => 'success',
+            'message' => 'Token successfully refreshed',
+            'data' => [
+                'token' => $token,
+                'refreshToken' => $refreshToken,
+            ]
         ]);
     }
 
-    public function logout(Request $request)
+    public function user(): JsonResponse
     {
-        $request->user()->currentAccessToken()->delete();
-        return response()->json(['message' => 'Logged out successfully']);
-    }
-
-    public function refresh(Request $request)
-    {
-        $user = $request->user();
-        $user->tokens()->where('name', 'auth_token')->delete();
-
-        $token = $user->createToken('auth_token')->plainTextToken;
-        $refreshToken = $user->createToken('refresh_token')->plainTextToken;
-
         return response()->json([
-            'accessToken' => $token,
-            'refreshToken' => $refreshToken,
+            'status' => 'success',
+            'data' => [
+                'user' => Auth::user()
+            ]
         ]);
-    }
-
-    public function user(Request $request)
-    {
-        return response()->json($request->user());
     }
 }

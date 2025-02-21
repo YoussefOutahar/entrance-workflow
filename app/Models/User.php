@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
     use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
 
@@ -37,6 +38,9 @@ class User extends Authenticatable
         'guid',
         'distinguished_name',
         'group_memberships',
+        'two_factor_secret',
+        'two_factor_enabled',
+        'email_verified_at',
     ];
 
     protected $hidden = [
@@ -44,6 +48,7 @@ class User extends Authenticatable
         'remember_token',
         'guid',
         'distinguished_name',
+        'two_factor_secret',
     ];
 
     protected $casts = [
@@ -53,15 +58,21 @@ class User extends Authenticatable
         'is_active' => 'boolean',
         'group_memberships' => 'array',
         'password' => 'hashed',
+        'two_factor_enabled' => 'boolean',
     ];
 
-    public function manager()
+    public function activities()
     {
-        return $this->belongsTo(User::class, 'manager_id');
+        return $this->hasMany(UserActivity::class);
     }
 
-    public function subordinates()
+    public function logActivity($type, $metadata = [])
     {
-        return $this->hasMany(User::class, 'manager_id');
+        return $this->activities()->create([
+            'type' => $type,
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+            'metadata' => $metadata,
+        ]);
     }
 }

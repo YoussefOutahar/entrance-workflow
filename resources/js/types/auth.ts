@@ -1,6 +1,7 @@
 export interface UserData {
     username: string;
     email: string;
+    password: string;
     display_name: string;
     given_name: string;
     surname: string;
@@ -18,20 +19,21 @@ export interface UserData {
     state?: string;
     postal_code?: string;
     country?: string;
-    is_active: boolean;
+    two_factor_enabled?: boolean;
+    email_verified_at?: string;
 }
 
 export interface AuthResponse {
-    token: string;
-    refreshToken: string;
-    user: UserData;
+    status: string;
+    message: string;
+    data: {
+        user: UserData;
+        token: string;
+        refreshToken: string;
+    };
 }
 
 export interface AuthError {
     message: string;
-}
-
-export interface RefreshTokenResponse {
-    accessToken: string;
-    refreshToken: string;
+    errors?: Record<string, string[]>;
 }
