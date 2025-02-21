@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response;
+use App\Models\Role;
 
 class AuthController extends Controller
 {
@@ -23,6 +24,9 @@ class AuthController extends Controller
             'is_active' => true,
             'password_last_set' => now(),
         ]);
+
+        $userRole = Role::where('slug', 'user')->first();
+        $user->roles()->attach($userRole);
 
         $token = $user->createToken('auth_token')->plainTextToken;
         $refreshToken = $user->createToken('refresh_token')->plainTextToken;

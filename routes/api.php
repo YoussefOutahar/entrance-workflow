@@ -7,6 +7,7 @@ use App\Http\Controllers\API\VisitorPassController;
 use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Auth\TwoFactorAuthController;
+use App\Http\Middleware\EnsureUserHasRole;
 
 // Public authentication routes
 Route::prefix('auth')->group(function () {
@@ -42,6 +43,21 @@ Route::middleware(['auth:sanctum'])->group(function () {
             Route::post('/confirm', [TwoFactorAuthController::class, 'confirm']);
             Route::post('/disable', [TwoFactorAuthController::class, 'disable']);
         });
+    });
+
+    // Admin routes
+    Route::middleware(EnsureUserHasRole::class . ':admin')->group(function () {
+        // Add admin specific routes here
+    });
+
+    // Chef routes
+    Route::middleware(EnsureUserHasRole::class . ':chef')->group(function () {
+        // Add chef specific routes here
+    });
+
+    // Routes for both admin and chef
+    Route::middleware(EnsureUserHasRole::class . ':admin,chef')->group(function () {
+        // Add shared admin/chef routes here
     });
 
     // Visitor pass management routes
