@@ -37,7 +37,7 @@ class VisitorPassResource extends Resource
                     ->required(),
                 Forms\Components\TextInput::make('duration_days')
                     ->numeric()
-                    ->visible(fn (Forms\Get $get) => $get('duration_type') === 'custom'),
+                    ->visible(fn(Forms\Get $get) => $get('duration_type') === 'custom'),
                 Forms\Components\TextInput::make('visitor_name')
                     ->required(),
                 Forms\Components\TextInput::make('id_number')
@@ -60,6 +60,20 @@ class VisitorPassResource extends Resource
                     ->required(),
                 Forms\Components\Toggle::make('hierarchy_approval'),
                 Forms\Components\Toggle::make('spp_approval'),
+                Forms\Components\Select::make('status')
+                    ->options([
+                        'awaiting' => 'Awaiting',
+                        'declined' => 'Declined',
+                        'started' => 'Started',
+                        'in_progress' => 'In Progress',
+                        'accepted' => 'Accepted',
+                    ])
+                    ->default('awaiting')
+                    ->required(),
+                Forms\Components\DateTimePicker::make('status_changed_at')
+                    ->disabled()
+                    ->dehydrated(false)
+                    ->visible(fn($record) => $record?->status_changed_at !== null),
             ]);
     }
 
@@ -77,7 +91,7 @@ class VisitorPassResource extends Resource
                 Tables\Columns\TextColumn::make('unit'),
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn(string $state): string => match ($state) {
                         'approved' => 'success',
                         'rejected' => 'danger',
                         default => 'warning',
@@ -86,6 +100,19 @@ class VisitorPassResource extends Resource
                     ->boolean(),
                 Tables\Columns\IconColumn::make('spp_approval')
                     ->boolean(),
+                Tables\Columns\TextColumn::make('status')
+                    ->badge()
+                    ->color(fn(string $state): string => match ($state) {
+                        'accepted' => 'success',
+                        'declined' => 'danger',
+                        'in_progress' => 'info',
+                        'started' => 'warning',
+                        default => 'secondary',
+                    }),
+                Tables\Columns\TextColumn::make('status_changed_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
@@ -94,10 +121,36 @@ class VisitorPassResource extends Resource
                         'approved' => 'Approved',
                         'rejected' => 'Rejected',
                     ]),
+                Tables\Filters\SelectFilter::make('status')
+                    ->options([
+                        'awaiting' => 'Awaiting',
+                        'declined' => 'Declined',
+                        'started' => 'Started',
+                        'in_progress' => 'In Progress',
+                        'accepted' => 'Accepted',
+                    ]),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
+                Tables\Actions\Action::make('updateStatus')
+                    ->form([
+                        Forms\Components\Select::make('status')
+                            ->options([
+                                'awaiting' => 'Awaiting',
+                                'declined' => 'Declined',
+                                'started' => 'Started',
+                                'in_progress' => 'In Progress',
+                                'accepted' => 'Accepted',
+                            ])
+                            ->required(),
+                    ])
+                    ->action(function (VisitorPass $record, array $data): void {
+                        $record->updateStatus($data['status']);
+                    })
+                    ->icon('heroicon-o-arrow-path')
+                    ->button()
+                    ->color('warning'),
             ]);
     }
 

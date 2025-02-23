@@ -29,8 +29,16 @@ class VisitorPass extends Model
         'visit_date' => 'datetime',
         'duration_days' => 'integer',
         'hierarchy_approval' => 'boolean',
-        'spp_approval' => 'boolean'
+        'spp_approval' => 'boolean',
+        'status_changed_at' => 'datetime'
     ];
+
+    public function updateStatus(string $newStatus): bool
+    {
+        $this->status = $newStatus;
+        $this->status_changed_at = now();
+        return $this->save();
+    }
 
     public function files(): HasMany
     {

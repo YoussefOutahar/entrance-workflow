@@ -23,6 +23,7 @@ class VisitorPassResource extends JsonResource
             'organization' => $this->organization,
             'category' => $this->category,
             'status' => $this->status,
+            'status_changed_at' => $this->status_changed_at,
             'approved_by' => $this->approved_by,
             'hierarchy_approval' => $this->hierarchy_approval,
             'spp_approval' => $this->spp_approval,

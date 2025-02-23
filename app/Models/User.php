@@ -58,6 +58,22 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser, Has
         return $this->roles()->whereIn('slug', $roles)->exists();
     }
 
+    public function groups(): BelongsToMany
+    {
+        return $this->belongsToMany(Group::class);
+    }
+
+    // Add these helper methods
+    public function hasGroup(string $group): bool
+    {
+        return $this->groups()->where('slug', $group)->exists();
+    }
+
+    public function hasAnyGroup(array $groups): bool
+    {
+        return $this->groups()->whereIn('slug', $groups)->exists();
+    }
+
     public function canAccessPanel(Panel $panel): bool
     {
         \Log::info('User has admin role: ' . $this->hasRole('admin'));

@@ -44,6 +44,10 @@ class UserResource extends Resource
                     ->relationship('roles', 'name')
                     ->preload()
                     ->required(),
+                Forms\Components\Select::make('groups')
+                    ->multiple()
+                    ->relationship('groups', 'name')
+                    ->preload(),
             ]);
     }
 
@@ -75,10 +79,15 @@ class UserResource extends Resource
                     ->dateTime()
                     ->sortable()
                     ->label('Verified'),
+                Tables\Columns\TextColumn::make('groups.name')
+                    ->badge(),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('roles')
                     ->relationship('roles', 'name')
+                    ->multiple(),
+                Tables\Filters\SelectFilter::make('groups')
+                    ->relationship('groups', 'name')
                     ->multiple(),
                 Tables\Filters\TernaryFilter::make('is_active')
                     ->label('Active'),
