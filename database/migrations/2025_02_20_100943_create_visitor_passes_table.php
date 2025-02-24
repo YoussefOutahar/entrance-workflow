@@ -23,11 +23,13 @@ return new class extends Migration {
             $table->string('id_number');
             $table->string('organization')->nullable();
             $table->enum('category', ['S-T', 'Ch', 'E']);
-            $table->string('status')->default('pending');
-            $table->string('approved_by')->nullable();
+            $table->string('status');
+            $table->foreignId('created_by')->constrained('users');
+            $table->foreignId('approved_by')->nullable()->constrained('users');
             $table->boolean('hierarchy_approval')->default(false);
             $table->boolean('spp_approval')->default(false);
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 

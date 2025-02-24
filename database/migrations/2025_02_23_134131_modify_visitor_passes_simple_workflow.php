@@ -5,34 +5,29 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::table('visitor_passes', function (Blueprint $table) {
-            // Modify the existing status column to use enum
+            $table->dropColumn('status');
+
             $table->enum('status', [
                 'awaiting',
                 'declined',
                 'started',
                 'in_progress',
                 'accepted'
-            ])->default('awaiting')->change();
+            ])->default('awaiting');
 
-            // Add a simple tracking column
             $table->timestamp('status_changed_at')->nullable();
+            $table->foreignId('status_changed_by')->nullable()->constrained('users');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::table('visitor_passes', function (Blueprint $table) {
-            $table->string('status')->default('pending')->change();
-            $table->dropColumn('status_changed_at');
+            $table->dropColumn(['status', 'status_changed_at', 'status_changed_by']);
+            $table->string('status')->default('pending');
         });
     }
 };

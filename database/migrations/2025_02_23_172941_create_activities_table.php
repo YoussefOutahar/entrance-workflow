@@ -12,11 +12,13 @@ return new class extends Migration {
             $table->string('subject_type');
             $table->unsignedBigInteger('subject_id');
             $table->string('type');
-            $table->foreignId('user_id')->constrained();
+            $table->foreignId('user_id')->constrained()->onDelete('restrict');
             $table->json('metadata');
             $table->timestamps();
 
             $table->index(['subject_type', 'subject_id']);
+            $table->index('type');
+            $table->index('created_at');
         });
     }
 
