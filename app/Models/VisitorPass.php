@@ -22,11 +22,12 @@ class VisitorPass extends Model
         'status',
         'approved_by',
         'hierarchy_approval',
-        'spp_approval'
+        'spp_approval',
+        'created_by'
     ];
 
     protected $casts = [
-        'visit_date' => 'datetime',
+        'visit_date' => 'date',
         'duration_days' => 'integer',
         'hierarchy_approval' => 'boolean',
         'spp_approval' => 'boolean',

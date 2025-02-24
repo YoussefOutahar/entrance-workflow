@@ -73,7 +73,12 @@ export interface VisitorPassFormData {
     organization?: string;
     category: "S-T" | "Ch" | "E";
     files?: File[];
+    status?: "awaiting" | "declined" | "started" | "in_progress" | "accepted";
+    approved_by?: number;
+    hierarchy_approval?: boolean;
+    spp_approval?: boolean;
 }
+
 export interface VisitorPassTableItem {
     id: number;
     visited_person: string;

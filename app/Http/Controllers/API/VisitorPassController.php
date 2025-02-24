@@ -25,7 +25,11 @@ class VisitorPassController extends Controller
         try {
             DB::beginTransaction();
 
-            $visitorPass = VisitorPass::create($request->except('files'));
+            $data = $request->except('files');
+            $data['created_by'] = auth()->id();
+            $data['status'] = 'awaiting';
+
+            $visitorPass = VisitorPass::create($data);
 
             // Log creation activity
             Activity::create([
@@ -48,10 +52,11 @@ class VisitorPassController extends Controller
                         'name' => $file->getClientOriginalName(),
                         'path' => $path,
                         'type' => $file->getMimeType(),
-                        'size' => $file->getSize()
+                        'size' => $file->getSize(),
+                        'uploaded_by' => auth()->id()
                     ]);
 
-                    // Log file upload activity
+                    // Log file upload
                     Activity::create([
                         'subject_type' => get_class($visitorPass),
                         'subject_id' => $visitorPass->id,
@@ -67,14 +72,10 @@ class VisitorPassController extends Controller
             }
 
             DB::commit();
-            return new VisitorPassResource($visitorPass->load(['files', 'activities']));
+            return new VisitorPassResource($visitorPass->load('files'));
 
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::error('Error in visitor pass store:', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
             throw $e;
         }
     }

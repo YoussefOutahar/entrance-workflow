@@ -13,14 +13,16 @@ return new class extends Migration {
         $tables = ['visitor_passes', 'files', 'groups', 'permissions'];
 
         foreach ($tables as $table) {
-            Schema::table($table, function (Blueprint $table) {
-                if (!Schema::hasColumn($table->getTable(), 'created_by')) {
-                    $table->foreignId('created_by')->nullable()->constrained('users');
-                }
-                if (!Schema::hasColumn($table->getTable(), 'updated_by')) {
-                    $table->foreignId('updated_by')->nullable()->constrained('users');
-                }
-            });
+            if (Schema::hasTable($table)) {
+                Schema::table($table, function (Blueprint $table) {
+                    if (!Schema::hasColumn($table->getTable(), 'created_by')) {
+                        $table->foreignId('created_by')->nullable()->constrained('users')->onDelete('set null');
+                    }
+                    if (!Schema::hasColumn($table->getTable(), 'updated_by')) {
+                        $table->foreignId('updated_by')->nullable()->constrained('users')->onDelete('set null');
+                    }
+                });
+            }
         }
     }
 
@@ -32,11 +34,18 @@ return new class extends Migration {
         $tables = ['visitor_passes', 'files', 'groups', 'permissions'];
 
         foreach ($tables as $table) {
-            Schema::table($table, function (Blueprint $table) {
-                $table->dropForeign(['created_by']);
-                $table->dropForeign(['updated_by']);
-                $table->dropColumn(['created_by', 'updated_by']);
-            });
+            if (Schema::hasTable($table)) {
+                Schema::table($table, function (Blueprint $table) {
+                    if (Schema::hasColumn($table->getTable(), 'created_by')) {
+                        $table->dropForeign(['created_by']);
+                        $table->dropColumn('created_by');
+                    }
+                    if (Schema::hasColumn($table->getTable(), 'updated_by')) {
+                        $table->dropForeign(['updated_by']);
+                        $table->dropColumn('updated_by');
+                    }
+                });
+            }
         }
     }
 };

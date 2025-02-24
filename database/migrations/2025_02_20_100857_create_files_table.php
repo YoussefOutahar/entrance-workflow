@@ -17,12 +17,9 @@ return new class extends Migration {
             $table->string('path');
             $table->string('type');
             $table->integer('size');
-            $table->foreignId('uploaded_by')->constrained('users');
+            $table->foreignId('uploaded_by')->nullable()->constrained('users');
             $table->timestamps();
             $table->softDeletes();
-
-            $table->index(['visitor_pass_id', 'created_at']);
-            $table->index('type');
         });
     }
 
