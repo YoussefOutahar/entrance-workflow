@@ -11,7 +11,13 @@ export interface VisitorPass {
     id_number: string;
     organization?: string;
     category: "S-T" | "Ch" | "E";
-    status: "awaiting" | "declined" | "started" | "in_progress" | "accepted";
+    status:
+        | "awaiting"
+        | "pending_chef"
+        | "started"
+        | "in_progress"
+        | "accepted"
+        | "declined";
     status_changed_at: string | null;
     approved_by?: number;
     hierarchy_approval: boolean;
@@ -54,6 +60,8 @@ export interface Activity {
         file_type?: string;
         comment?: string;
         timestamp: string;
+        user_group?: string;
+        system_message?: string;
     };
     message: string;
     created_at: string;
@@ -73,7 +81,13 @@ export interface VisitorPassFormData {
     organization?: string;
     category: "S-T" | "Ch" | "E";
     files?: File[];
-    status?: "awaiting" | "declined" | "started" | "in_progress" | "accepted";
+    status?:
+        | "awaiting"
+        | "pending_chef"
+        | "started"
+        | "in_progress"
+        | "accepted"
+        | "declined";
     approved_by?: number;
     hierarchy_approval?: boolean;
     spp_approval?: boolean;
@@ -95,7 +109,13 @@ export interface VisitorPassTableItem {
 }
 
 export interface StatusUpdateData {
-    status: "awaiting" | "declined" | "started" | "in_progress" | "accepted";
+    status:
+        | "awaiting"
+        | "pending_chef"
+        | "started"
+        | "in_progress"
+        | "accepted"
+        | "declined";
     notes?: string;
 }
 

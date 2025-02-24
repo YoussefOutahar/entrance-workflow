@@ -5,38 +5,46 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration {
+    /**
+     * Run the migrations.
+     */
     public function up(): void
     {
         Schema::table('visitor_passes', function (Blueprint $table) {
-            // Drop the existing status column first
-            $table->dropColumn('status');
-
-            // Add the new enum status column
+            // Modify the existing status column to use enum with our expanded workflow statuses
             $table->enum('status', [
-                'awaiting',
-                'declined',
-                'started',
-                'in_progress',
-                'accepted'
-            ])->default('awaiting');
+                'awaiting',      // Initial state when created
+                'pending_chef',  // Submitted and waiting for chef approval
+                'started',       // Chef approved, sent to Service des Permis
+                'in_progress',   // Service des Permis reviewed, ready for final approval
+                'accepted',      // Final approval by Barriere/Gendarmerie
+                'declined'       // Rejected at any stage
+            ])->default('awaiting')->change();
 
-            // Add tracking columns if they don't exist
-            if (!Schema::hasColumn('visitor_passes', 'status_changed_at')) {
-                $table->timestamp('status_changed_at')->nullable();
-            }
+            // Add a simple tracking column
+            $table->timestamp('status_changed_at')->nullable();
 
-            if (!Schema::hasColumn('visitor_passes', 'status_changed_by')) {
-                $table->foreignId('status_changed_by')->nullable()->constrained('users');
+            // Make sure we have created_by column
+            if (!Schema::hasColumn('visitor_passes', 'created_by')) {
+                $table->unsignedBigInteger('created_by')->nullable();
+                $table->foreign('created_by')->references('id')->on('users');
             }
         });
     }
 
+    /**
+     * Reverse the migrations.
+     */
     public function down(): void
     {
         Schema::table('visitor_passes', function (Blueprint $table) {
-            $table->dropForeign(['status_changed_by']);
-            $table->dropColumn(['status', 'status_changed_at', 'status_changed_by']);
-            $table->string('status')->default('pending');
+            $table->string('status')->default('pending')->change();
+            $table->dropColumn('status_changed_at');
+
+            if (Schema::hasColumn('visitor_passes', 'created_by')) {
+                $table->dropForeign(['created_by']);
+                $table->dropColumn('created_by');
+            }
         });
     }
 };

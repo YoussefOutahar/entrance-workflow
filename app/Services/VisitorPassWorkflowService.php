@@ -10,18 +10,21 @@ use Illuminate\Auth\Access\AuthorizationException;
 
 class VisitorPassWorkflowService
 {
+    // Update transitions to enforce the correct workflow
     private array $allowedTransitions = [
-        'awaiting' => ['started', 'declined'],
-        'started' => ['in_progress', 'declined'],
-        'in_progress' => ['accepted', 'declined'],
-        'declined' => ['awaiting'],
-        'accepted' => ['awaiting']
+        'awaiting' => ['pending_chef', 'started', 'declined'],  // Admin/chef can go straight to started
+        'pending_chef' => ['started', 'declined'],              // Chef approval to Service des Permis
+        'started' => ['in_progress', 'declined'],               // Service des Permis reviewing
+        'in_progress' => ['accepted', 'declined'],              // Ready for Gendarmerie/Barrière approval
+        'accepted' => ['awaiting'],                             // Reset if needed
+        'declined' => ['awaiting']                              // Reset if needed
     ];
 
     private array $transitionMessages = [
-        'started' => 'Review process initiated',
-        'in_progress' => 'Review in progress',
-        'accepted' => 'Pass approved',
+        'pending_chef' => 'Pass submitted for chef approval',
+        'started' => 'Pass approved by chef and sent to Service des Permis',
+        'in_progress' => 'Pass reviewed by Service des Permis and ready for final approval',
+        'accepted' => 'Pass approved by Barriere/Gendarmerie',
         'declined' => 'Pass rejected',
         'awaiting' => 'Pass returned to awaiting state'
     ];
@@ -37,12 +40,27 @@ class VisitorPassWorkflowService
                 );
             }
 
-            if (!$this->userCanTransition($user, $visitorPass, $newStatus)) {
+            // Special case: Allow direct approval for admin/chef
+            $bypassCheck = false;
+            if (
+                $visitorPass->status === 'awaiting' && $newStatus === 'started' &&
+                ($user->hasRole('admin') || $user->hasRole('chef'))
+            ) {
+                $bypassCheck = true;
+            }
+
+            if (!$bypassCheck && !$this->userCanTransition($user, $visitorPass, $newStatus)) {
                 throw new AuthorizationException("User not authorized for this transition");
             }
 
             $oldStatus = $visitorPass->status;
             $visitorPass->updateStatus($newStatus);
+
+            // If approved, record who approved it
+            if ($newStatus === 'accepted') {
+                $visitorPass->approved_by = $user->id;
+                $visitorPass->save();
+            }
 
             // Log status change activity
             Activity::create([
@@ -56,7 +74,8 @@ class VisitorPassWorkflowService
                     'notes' => $notes,
                     'transition_type' => $this->getTransitionType($oldStatus, $newStatus),
                     'system_message' => $this->transitionMessages[$newStatus],
-                    'changed_at' => now()->toIso8601String()
+                    'changed_at' => now()->toIso8601String(),
+                    'user_group' => $user->groups()->first() ? $user->groups()->first()->name : null
                 ]
             ]);
 
@@ -81,9 +100,21 @@ class VisitorPassWorkflowService
 
     private function userCanTransition(User $user, VisitorPass $visitorPass, string $newStatus): bool
     {
+        // Admin can do any transition
+        if ($user->hasRole('admin')) {
+            return true;
+        }
+
+        // Chef can directly approve to started
+        if ($user->hasRole('chef') && $visitorPass->status === 'awaiting' && $newStatus === 'started') {
+            return true;
+        }
+
         return match ($newStatus) {
-            'started', 'in_progress' => $user->can('review', $visitorPass),
-            'accepted' => $user->can('approve', $visitorPass),
+            'pending_chef' => $user->can('submit', $visitorPass),
+            'started' => $user->can('approve_chef', $visitorPass),
+            'in_progress' => $user->can('review', $visitorPass), // Service des Permis review
+            'accepted' => $user->can('approve', $visitorPass),   // Gendarmerie/Barrière approval
             'declined' => $user->can('reject', $visitorPass),
             'awaiting' => $user->can('create', $visitorPass),
             default => false
@@ -93,9 +124,10 @@ class VisitorPassWorkflowService
     private function getTransitionType(string $oldStatus, string $newStatus): string
     {
         return match ($newStatus) {
-            'started' => 'review_started',
-            'in_progress' => 'review_in_progress',
-            'accepted' => 'approval',
+            'pending_chef' => 'submitted_to_chef',
+            'started' => 'chef_approved',
+            'in_progress' => 'service_review',
+            'accepted' => 'final_approval',
             'declined' => 'rejection',
             'awaiting' => 'reopened',
             default => 'status_change'

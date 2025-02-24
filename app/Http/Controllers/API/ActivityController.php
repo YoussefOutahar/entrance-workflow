@@ -8,6 +8,7 @@ use App\Models\VisitorPass;
 use Illuminate\Http\Request;
 use App\Http\Resources\ActivityResource;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\Auth;
 
 class ActivityController extends Controller
 {
@@ -35,13 +36,22 @@ class ActivityController extends Controller
             'comment' => 'required|string|max:1000'
         ]);
 
-        $activity = Activity::logComment(
-            $visitorPass,
-            $request->user(),
-            $request->comment
-        );
+        $activity = Activity::create([
+            'subject_type' => get_class($visitorPass),
+            'subject_id' => $visitorPass->id,
+            'type' => 'comment',
+            'user_id' => Auth::id(),
+            'metadata' => [
+                'comment' => $request->comment,
+                'timestamp' => now()->toIso8601String(),
+                'user_group' => Auth::user()->groups()->first() ? Auth::user()->groups()->first()->name : null
+            ]
+        ]);
 
-        return new ActivityResource($activity);
+        return response()->json([
+            'message' => 'Comment added successfully',
+            'data' => new ActivityResource($activity)
+        ]);
     }
 
     public function getVisitorPassTimeline(VisitorPass $visitorPass): AnonymousResourceCollection

@@ -16,7 +16,7 @@ export class VisitorPassService {
         const formData = new FormData();
 
         Object.entries(data).forEach(([key, value]) => {
-            if (value !== undefined && key !== "files") {
+            if (value !== undefined && value !== null && key !== "files") {
                 formData.append(key, value.toString());
             }
         });
@@ -66,19 +66,7 @@ export class VisitorPassService {
         files?: FileList
     ): Promise<VisitorPass> {
         try {
-            const formData = new FormData();
-
-            Object.entries(data).forEach(([key, value]) => {
-                if (value !== undefined && value !== null) {
-                    formData.append(key, value.toString());
-                }
-            });
-
-            if (files) {
-                Array.from(files).forEach((file) => {
-                    formData.append(`files[]`, file);
-                });
-            }
+            const formData = this.formatFormData(data, files);
 
             const response = await axiosInstance.post(
                 API_ROUTES.VISITOR_PASSES.BASE,
@@ -107,7 +95,7 @@ export class VisitorPassService {
         files?: FileList
     ): Promise<VisitorPass> {
         try {
-            const formData = this.formatFormData(data as any, files);
+            const formData = this.formatFormData(data, files);
             formData.append("_method", "PUT");
 
             const response = await axiosInstance.post(

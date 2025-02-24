@@ -2,35 +2,60 @@
 
 namespace App\Http\Resources;
 
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class ActivityResource extends JsonResource
 {
-    public function toArray($request): array
+    public function toArray(Request $request): array
     {
+        $messageMap = [
+            'status_changed' => $this->getStatusChangeMessage(),
+            'file_uploaded' => $this->getFileUploadMessage(),
+            'pass_created' => 'Pass created',
+            'pass_updated' => 'Pass information updated',
+            'pass_deleted' => 'Pass deleted',
+            'comment' => 'Added a comment'
+        ];
+
         return [
             'id' => $this->id,
             'type' => $this->type,
-            'user' => new UserResource($this->whenLoaded('user')),
+            'user' => [
+                'id' => $this->user->id,
+                'name' => $this->user->display_name,
+                'username' => $this->user->username
+            ],
             'metadata' => $this->metadata,
+            'message' => $messageMap[$this->type] ?? 'Activity recorded',
             'created_at' => $this->created_at,
-            'formatted_date' => $this->created_at->diffForHumans(),
-            'subject_type' => $this->subject_type,
-            'subject_id' => $this->subject_id,
-            'message' => $this->getActivityMessage(),
+            'formatted_date' => $this->created_at->diffForHumans()
         ];
     }
 
-    private function getActivityMessage(): string
+    private function getStatusChangeMessage(): string
     {
-        return match ($this->type) {
-            'pass_created' => 'Created new visitor pass',
-            'pass_updated' => 'Updated visitor pass details',
-            'pass_deleted' => 'Deleted visitor pass',
-            'file_uploaded' => "Uploaded file: {$this->metadata['file_name']}",
-            'file_deleted' => "Deleted file: {$this->metadata['file_name']}",
-            'status_changed' => "Status changed from {$this->metadata['old_status']} to {$this->metadata['new_status']}",
-            default => 'Activity recorded'
-        };
+        $statusLabels = [
+            'awaiting' => 'Awaiting Submission',
+            'pending_chef' => 'Pending Chef Approval',
+            'started' => 'Service des Permis Review',
+            'in_progress' => 'Ready for Final Approval',
+            'accepted' => 'Approved',
+            'declined' => 'Rejected'
+        ];
+
+        $oldStatus = $this->metadata['old_status'] ?? 'unknown';
+        $newStatus = $this->metadata['new_status'] ?? 'unknown';
+
+        $oldLabel = $statusLabels[$oldStatus] ?? ucfirst($oldStatus);
+        $newLabel = $statusLabels[$newStatus] ?? ucfirst($newStatus);
+
+        return "Status changed from {$oldLabel} to {$newLabel}";
+    }
+
+    private function getFileUploadMessage(): string
+    {
+        $fileName = $this->metadata['file_name'] ?? 'a file';
+        return "Uploaded {$fileName}";
     }
 }

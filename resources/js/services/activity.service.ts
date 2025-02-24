@@ -54,17 +54,8 @@ export class ActivityService {
     }> {
         try {
             const response = await axiosInstance.get(
-                params.type
-                    ? API_ROUTES.ACTIVITIES.FILTERS.BY_TYPE(params.type)
-                    : params.subject_type && params.subject_id
-                    ? API_ROUTES.ACTIVITIES.FILTERS.BY_SUBJECT(
-                          params.subject_type,
-                          params.subject_id
-                      )
-                    : API_ROUTES.ACTIVITIES.BASE,
-                {
-                    params: { page: params.page },
-                }
+                API_ROUTES.ACTIVITIES.BASE,
+                { params }
             );
             return response.data;
         } catch (error) {

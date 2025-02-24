@@ -11,6 +11,7 @@ use App\Models\Activity;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 class VisitorPassController extends Controller
 {
@@ -25,25 +26,40 @@ class VisitorPassController extends Controller
         try {
             DB::beginTransaction();
 
+            $user = Auth::user();
             $data = $request->except('files');
-            $data['created_by'] = auth()->id();
-            $data['status'] = 'awaiting';
+            $data['created_by'] = $user->id;
+
+            // Set initial status based on user role
+            // If admin or chef, set directly to started
+            if ($user->hasRole('admin') || $user->hasRole('chef')) {
+                $data['status'] = 'started';
+            } else {
+                $data['status'] = 'awaiting';
+            }
 
             $visitorPass = VisitorPass::create($data);
 
-            // Log creation activity
+            // Log creation activity with appropriate message
+            $statusMessage = $data['status'] === 'started'
+                ? 'Pass created and automatically approved by chef'
+                : 'Pass created and awaiting chef approval';
+
             Activity::create([
                 'subject_type' => get_class($visitorPass),
                 'subject_id' => $visitorPass->id,
                 'type' => 'pass_created',
-                'user_id' => auth()->id(),
+                'user_id' => Auth::id(),
                 'metadata' => [
                     'initial_status' => $visitorPass->status,
                     'visitor_name' => $visitorPass->visitor_name,
                     'visit_date' => $visitorPass->visit_date->format('Y-m-d'),
+                    'user_group' => $user->groups()->first() ? $user->groups()->first()->name : null,
+                    'system_message' => $statusMessage
                 ]
             ]);
 
+            // Process file uploads
             if ($request->hasFile('files')) {
                 foreach ($request->file('files') as $file) {
                     $path = $file->store('visitor-passes', 'public');
@@ -53,7 +69,7 @@ class VisitorPassController extends Controller
                         'path' => $path,
                         'type' => $file->getMimeType(),
                         'size' => $file->getSize(),
-                        'uploaded_by' => auth()->id()
+                        'uploaded_by' => Auth::id()
                     ]);
 
                     // Log file upload
@@ -61,11 +77,12 @@ class VisitorPassController extends Controller
                         'subject_type' => get_class($visitorPass),
                         'subject_id' => $visitorPass->id,
                         'type' => 'file_uploaded',
-                        'user_id' => auth()->id(),
+                        'user_id' => Auth::id(),
                         'metadata' => [
                             'file_name' => $fileModel->name,
                             'file_size' => $fileModel->size,
-                            'file_type' => $fileModel->type
+                            'file_type' => $fileModel->type,
+                            'user_group' => $user->groups()->first() ? $user->groups()->first()->name : null
                         ]
                     ]);
                 }
@@ -79,6 +96,7 @@ class VisitorPassController extends Controller
             throw $e;
         }
     }
+
 
     public function show(VisitorPass $visitorPass): VisitorPassResource
     {
@@ -98,9 +116,10 @@ class VisitorPassController extends Controller
                 'subject_type' => get_class($visitorPass),
                 'subject_id' => $visitorPass->id,
                 'type' => 'pass_updated',
-                'user_id' => auth()->id(),
+                'user_id' => Auth::id(),
                 'metadata' => [
                     'changes' => array_diff($visitorPass->getAttributes(), $oldData),
+                    'user_group' => Auth::user()->groups()->first() ? Auth::user()->groups()->first()->name : null
                 ]
             ]);
 
@@ -120,7 +139,7 @@ class VisitorPassController extends Controller
                         'subject_type' => get_class($visitorPass),
                         'subject_id' => $visitorPass->id,
                         'type' => 'file_uploaded',
-                        'user_id' => auth()->id(),
+                        'user_id' => Auth::id(),
                         'metadata' => [
                             'file_name' => $fileModel->name,
                             'file_size' => $fileModel->size,
@@ -153,11 +172,12 @@ class VisitorPassController extends Controller
                 'subject_type' => get_class($visitorPass),
                 'subject_id' => $visitorPass->id,
                 'type' => 'pass_deleted',
-                'user_id' => auth()->id(),
+                'user_id' => Auth::id(),
                 'metadata' => [
                     'pass_id' => $visitorPass->id,
                     'visitor_name' => $visitorPass->visitor_name,
-                    'deleted_at' => now()->toIso8601String()
+                    'deleted_at' => now()->toIso8601String(),
+                    'user_group' => Auth::user()->groups()->first() ? Auth::user()->groups()->first()->name : null
                 ]
             ]);
 

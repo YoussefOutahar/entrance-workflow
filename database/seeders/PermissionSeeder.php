@@ -20,12 +20,12 @@ class PermissionSeeder extends Seeder
             [
                 'name' => 'Review Visitor Pass',
                 'slug' => 'review-visitor-pass',
-                'description' => 'Can review visitor pass applications'
+                'description' => 'Can review visitor pass applications (Service des Permis)'
             ],
             [
                 'name' => 'Approve Visitor Pass',
                 'slug' => 'approve-visitor-pass',
-                'description' => 'Can approve visitor passes'
+                'description' => 'Can give final approval to visitor passes (Barriere/Gendarmerie)'
             ],
             [
                 'name' => 'Reject Visitor Pass',
@@ -63,73 +63,61 @@ class PermissionSeeder extends Seeder
 
     private function assignPermissionsToGroups(): void
     {
-        // Service des Permis permissions
+        // Service des Permis permissions - they review after chef approval
         $servicePermis = Group::where('slug', 'service-permis')->first();
         if ($servicePermis) {
             $servicePermis->permissions()->sync(
                 Permission::whereIn('slug', [
-                    'create-visitor-pass',
                     'review-visitor-pass',
-                    'approve-visitor-pass',
-                    'reject-visitor-pass',
                     'view-all-visitor-passes'
                 ])->pluck('id')
             );
         }
 
-        // Barrière permissions
+        // Barrière permissions - they give final approval
         $barriere = Group::where('slug', 'barriere')->first();
         if ($barriere) {
             $barriere->permissions()->sync(
                 Permission::whereIn('slug', [
+                    'approve-visitor-pass',
                     'view-all-visitor-passes'
                 ])->pluck('id')
             );
         }
 
-        // Gendarmerie permissions
+        // Gendarmerie permissions - they can also give final approval
         $gendarmerie = Group::where('slug', 'gendarmerie')->first();
         if ($gendarmerie) {
             $gendarmerie->permissions()->sync(
                 Permission::whereIn('slug', [
-                    'view-all-visitor-passes',
-                    'review-visitor-pass',
                     'approve-visitor-pass',
-                    'reject-visitor-pass'
+                    'view-all-visitor-passes'
                 ])->pluck('id')
             );
         }
 
-        // IT Department permissions
+        // All other groups need create permission
+        $otherGroups = ['it-department', 'hr', 'maintenance', 'security'];
+
+        foreach ($otherGroups as $groupSlug) {
+            $group = Group::where('slug', $groupSlug)->first();
+            if ($group) {
+                $group->permissions()->sync(
+                    Permission::whereIn('slug', [
+                        'create-visitor-pass',
+                        'view-all-visitor-passes'
+                    ])->pluck('id')
+                );
+            }
+        }
+
+        // IT Department also needs management permissions
         $itDepartment = Group::where('slug', 'it-department')->first();
         if ($itDepartment) {
-            $itDepartment->permissions()->sync(
+            $itDepartment->permissions()->syncWithoutDetaching(
                 Permission::whereIn('slug', [
                     'manage-users',
-                    'manage-groups',
-                    'view-all-visitor-passes'
-                ])->pluck('id')
-            );
-        }
-
-        // Security permissions
-        $security = Group::where('slug', 'security')->first();
-        if ($security) {
-            $security->permissions()->sync(
-                Permission::whereIn('slug', [
-                    'view-all-visitor-passes',
-                    'review-visitor-pass'
-                ])->pluck('id')
-            );
-        }
-
-        // HR permissions
-        $hr = Group::where('slug', 'hr')->first();
-        if ($hr) {
-            $hr->permissions()->sync(
-                Permission::whereIn('slug', [
-                    'create-visitor-pass',
-                    'view-all-visitor-passes'
+                    'manage-groups'
                 ])->pluck('id')
             );
         }
