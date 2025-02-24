@@ -5,6 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\API\FileController;
 use App\Http\Controllers\API\VisitorPassController;
 use App\Http\Controllers\API\VisitorPassWorkflowController;
+use App\Http\Controllers\API\ActivityController;
 use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Auth\TwoFactorAuthController;
@@ -69,9 +70,20 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('visitor-passes/{visitorPass}/files', [FileController::class, 'store']);
         Route::delete('files/{file}', [FileController::class, 'destroy']);
 
-        Route::post('{visitorPass}/status', [VisitorPassWorkflowController::class, 'updateStatus']);
-        Route::get('{visitorPass}/available-actions', [VisitorPassWorkflowController::class, 'getAvailableActions']);
-        Route::get('{visitorPass}/workflow-history', [VisitorPassWorkflowController::class, 'getWorkflowHistory']);
+        Route::get('activities', [ActivityController::class, 'index']);
+        Route::post('visitor-passes/{visitorPass}/comments', [ActivityController::class, 'addComment']);
+        Route::get('visitor-passes/{visitorPass}/timeline', [ActivityController::class, 'getVisitorPassTimeline']);
+
+        // Enhanced visitor pass workflow routes
+        Route::prefix('visitor-passes')->group(function () {
+            Route::post('{visitorPass}/status', [VisitorPassWorkflowController::class, 'updateStatus']);
+            Route::get('{visitorPass}/available-actions', [VisitorPassWorkflowController::class, 'getAvailableActions']);
+            Route::get('{visitorPass}/workflow-history', [VisitorPassWorkflowController::class, 'getWorkflowHistory']);
+
+            // File management routes
+            Route::post('{visitorPass}/files', [FileController::class, 'store']);
+            Route::delete('files/{file}', [FileController::class, 'destroy']);
+        });
     });
 });
 

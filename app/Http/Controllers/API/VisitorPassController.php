@@ -7,93 +7,176 @@ use App\Http\Requests\StoreVisitorPassRequest;
 use App\Http\Requests\UpdateVisitorPassRequest;
 use App\Http\Resources\VisitorPassResource;
 use App\Models\VisitorPass;
+use App\Models\Activity;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 
 class VisitorPassController extends Controller
 {
     public function index(): AnonymousResourceCollection
     {
-        $passes = VisitorPass::with('files')->paginate(10);
+        $passes = VisitorPass::with(['files', 'activities'])->paginate(10);
         return VisitorPassResource::collection($passes);
     }
 
     public function store(StoreVisitorPassRequest $request): VisitorPassResource
     {
-        \Log::info('Received request', [
-            'files' => $request->hasFile('files'),
-            'allFiles' => $request->allFiles(),
-            'all' => $request->all()
-        ]);
-
         try {
+            DB::beginTransaction();
+
             $visitorPass = VisitorPass::create($request->except('files'));
+
+            // Log creation activity
+            Activity::create([
+                'subject_type' => get_class($visitorPass),
+                'subject_id' => $visitorPass->id,
+                'type' => 'pass_created',
+                'user_id' => auth()->id(),
+                'metadata' => [
+                    'initial_status' => $visitorPass->status,
+                    'visitor_name' => $visitorPass->visitor_name,
+                    'visit_date' => $visitorPass->visit_date->format('Y-m-d'),
+                ]
+            ]);
 
             if ($request->hasFile('files')) {
                 foreach ($request->file('files') as $file) {
-                    \Log::info('Processing file', [
-                        'name' => $file->getClientOriginalName(),
-                        'size' => $file->getSize(),
-                        'mimeType' => $file->getMimeType()
-                    ]);
-
                     $path = $file->store('visitor-passes', 'public');
 
-                    $visitorPass->files()->create([
+                    $fileModel = $visitorPass->files()->create([
                         'name' => $file->getClientOriginalName(),
                         'path' => $path,
                         'type' => $file->getMimeType(),
                         'size' => $file->getSize()
                     ]);
+
+                    // Log file upload activity
+                    Activity::create([
+                        'subject_type' => get_class($visitorPass),
+                        'subject_id' => $visitorPass->id,
+                        'type' => 'file_uploaded',
+                        'user_id' => auth()->id(),
+                        'metadata' => [
+                            'file_name' => $fileModel->name,
+                            'file_size' => $fileModel->size,
+                            'file_type' => $fileModel->type
+                        ]
+                    ]);
                 }
             }
 
-            return new VisitorPassResource($visitorPass->load('files'));
+            DB::commit();
+            return new VisitorPassResource($visitorPass->load(['files', 'activities']));
+
         } catch (\Exception $e) {
-            \Log::error('Error in store method', [
+            DB::rollBack();
+            \Log::error('Error in visitor pass store:', [
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-
-            return response()->json([
-                'message' => 'Error creating visitor pass',
-                'error' => $e->getMessage()
-            ], 422);
+            throw $e;
         }
     }
 
     public function show(VisitorPass $visitorPass): VisitorPassResource
     {
-        return new VisitorPassResource($visitorPass->load('files'));
+        return new VisitorPassResource($visitorPass->load(['files', 'activities']));
     }
 
     public function update(UpdateVisitorPassRequest $request, VisitorPass $visitorPass): VisitorPassResource
     {
-        $visitorPass->update($request->validated());
+        try {
+            DB::beginTransaction();
 
-        if ($request->hasFile('files')) {
-            foreach ($request->file('files') as $file) {
-                $path = $file->store('visitor-passes', 'public');
+            $oldData = $visitorPass->getOriginal();
+            $visitorPass->update($request->validated());
 
-                $visitorPass->files()->create([
-                    'name' => $file->getClientOriginalName(),
-                    'path' => $path,
-                    'type' => $file->getClientMimeType(),
-                    'size' => $file->getSize()
-                ]);
+            // Log update activity
+            Activity::create([
+                'subject_type' => get_class($visitorPass),
+                'subject_id' => $visitorPass->id,
+                'type' => 'pass_updated',
+                'user_id' => auth()->id(),
+                'metadata' => [
+                    'changes' => array_diff($visitorPass->getAttributes(), $oldData),
+                ]
+            ]);
+
+            if ($request->hasFile('files')) {
+                foreach ($request->file('files') as $file) {
+                    $path = $file->store('visitor-passes', 'public');
+
+                    $fileModel = $visitorPass->files()->create([
+                        'name' => $file->getClientOriginalName(),
+                        'path' => $path,
+                        'type' => $file->getMimeType(),
+                        'size' => $file->getSize()
+                    ]);
+
+                    // Log file upload activity
+                    Activity::create([
+                        'subject_type' => get_class($visitorPass),
+                        'subject_id' => $visitorPass->id,
+                        'type' => 'file_uploaded',
+                        'user_id' => auth()->id(),
+                        'metadata' => [
+                            'file_name' => $fileModel->name,
+                            'file_size' => $fileModel->size,
+                            'file_type' => $fileModel->type
+                        ]
+                    ]);
+                }
             }
-        }
 
-        return new VisitorPassResource($visitorPass->load('files'));
+            DB::commit();
+            return new VisitorPassResource($visitorPass->load(['files', 'activities']));
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Error in visitor pass update:', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            throw $e;
+        }
     }
 
     public function destroy(VisitorPass $visitorPass)
     {
-        foreach ($visitorPass->files as $file) {
-            Storage::disk('public')->delete($file->path);
-        }
+        try {
+            DB::beginTransaction();
 
-        $visitorPass->delete();
-        return response()->noContent();
+            // Log deletion activity before deleting files
+            Activity::create([
+                'subject_type' => get_class($visitorPass),
+                'subject_id' => $visitorPass->id,
+                'type' => 'pass_deleted',
+                'user_id' => auth()->id(),
+                'metadata' => [
+                    'pass_id' => $visitorPass->id,
+                    'visitor_name' => $visitorPass->visitor_name,
+                    'deleted_at' => now()->toIso8601String()
+                ]
+            ]);
+
+            // Delete associated files from storage
+            foreach ($visitorPass->files as $file) {
+                Storage::disk('public')->delete($file->path);
+            }
+
+            $visitorPass->delete();
+
+            DB::commit();
+            return response()->noContent();
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Error in visitor pass deletion:', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            throw $e;
+        }
     }
 }

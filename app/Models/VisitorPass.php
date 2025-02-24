@@ -51,14 +51,17 @@ class VisitorPass extends Model
         return $this->morphMany(Activity::class, 'subject');
     }
 
-    public function logActivity(array $data)
+    public function logStatusChange(string $newStatus, User $user, ?string $notes = null)
     {
-        return Activity::create([
-            'subject_type' => get_class($this),
-            'subject_id' => $this->id,
-            'type' => $data['action'],
-            'user_id' => $data['user_id'],
-            'metadata' => $data
+        return Activity::logStatusChange($this, $user, [
+            'old_status' => $this->getOriginal('status'),
+            'new_status' => $newStatus,
+            'notes' => $notes
         ]);
+    }
+
+    public function logFileUpload(array $fileData, User $user)
+    {
+        return Activity::logFileUpload($this, $user, $fileData);
     }
 }

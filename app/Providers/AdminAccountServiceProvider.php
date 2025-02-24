@@ -8,11 +8,6 @@ use Illuminate\Support\ServiceProvider;
 
 class AdminAccountServiceProvider extends ServiceProvider
 {
-    public function register(): void
-    {
-        //
-    }
-
     public function boot(): void
     {
         // Only run in non-console environment
