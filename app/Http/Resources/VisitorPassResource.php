@@ -2,12 +2,11 @@
 
 namespace App\Http\Resources;
 
-use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class VisitorPassResource extends JsonResource
 {
-    public function toArray(Request $request): array
+    public function toArray($request): array
     {
         return [
             'id' => $this->id,
@@ -27,9 +26,11 @@ class VisitorPassResource extends JsonResource
             'approved_by' => $this->approved_by,
             'hierarchy_approval' => $this->hierarchy_approval,
             'spp_approval' => $this->spp_approval,
-            'files' => $this->whenLoaded('files'),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
+            'files' => FileResource::collection($this->whenLoaded('files')),
+            'activities' => ActivityResource::collection($this->whenLoaded('activities')),
+            'latest_activity' => new ActivityResource($this->activities()->latest()->first()),
         ];
     }
 }
