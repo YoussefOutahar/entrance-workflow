@@ -44,4 +44,21 @@ class VisitorPass extends Model
     {
         return $this->hasMany(File::class);
     }
+
+
+    public function activities()
+    {
+        return $this->morphMany(Activity::class, 'subject');
+    }
+
+    public function logActivity(array $data)
+    {
+        return Activity::create([
+            'subject_type' => get_class($this),
+            'subject_id' => $this->id,
+            'type' => $data['action'],
+            'user_id' => $data['user_id'],
+            'metadata' => $data
+        ]);
+    }
 }

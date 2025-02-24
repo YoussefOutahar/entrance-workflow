@@ -4,19 +4,24 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class UserActivity extends Model
+class Activity extends Model
 {
     protected $fillable = [
-        'user_id',
+        'subject_type',
+        'subject_id',
         'type',
-        'ip_address',
-        'user_agent',
+        'user_id',
         'metadata'
     ];
 
     protected $casts = [
         'metadata' => 'array'
     ];
+
+    public function subject()
+    {
+        return $this->morphTo();
+    }
 
     public function user()
     {

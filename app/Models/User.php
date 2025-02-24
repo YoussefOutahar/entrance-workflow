@@ -84,20 +84,4 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser, Has
     {
         return $this->display_name ?? $this->username;
     }
-
-
-    public function activities()
-    {
-        return $this->hasMany(UserActivity::class);
-    }
-
-    public function logActivity($type, $metadata = [])
-    {
-        return $this->activities()->create([
-            'type' => $type,
-            'ip_address' => request()->ip(),
-            'user_agent' => request()->userAgent(),
-            'metadata' => $metadata,
-        ]);
-    }
 }
