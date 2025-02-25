@@ -1,3 +1,4 @@
+// src/config/api.config.ts
 export const API_ROUTES = {
     AUTH: {
         REGISTER: "/auth/register",
@@ -36,9 +37,12 @@ export const API_ROUTES = {
         },
     },
     USER: {
-        PROFILE: "/api/auth/user",
-        GROUPS: "/api/groups",
-        ROLES: "/api/roles",
-        PERMISSIONS: "/api/permissions",
+        PROFILE: "/auth/user",
+        USER_PROFILE: "/users/profile",
+        UPDATE_PROFILE: (id: number) => `/users/${id}/profile`,
+        CHANGE_PASSWORD: (id: number) => `/users/${id}/password`,
+        GROUPS: "/groups",
+        ROLES: "/roles",
+        PERMISSIONS: "/permissions",
     },
 };

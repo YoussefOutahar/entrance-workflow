@@ -6,6 +6,7 @@ use App\Http\Controllers\API\FileController;
 use App\Http\Controllers\API\VisitorPassController;
 use App\Http\Controllers\API\VisitorPassWorkflowController;
 use App\Http\Controllers\API\ActivityController;
+use App\Http\Controllers\API\UserProfileController;
 use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Auth\TwoFactorAuthController;
@@ -30,6 +31,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::post('/refresh-token', [AuthController::class, 'refresh']);
         Route::get('/user', [AuthController::class, 'user']);
+
+        // User profile routes
+        Route::get('/users/profile', [UserProfileController::class, 'show']);
+        Route::put('/users/{user}/profile', [UserProfileController::class, 'update']);
+        Route::put('/users/{user}/password', [UserProfileController::class, 'changePassword']);
 
         // Email verification routes
         Route::prefix('email')->group(function () {
