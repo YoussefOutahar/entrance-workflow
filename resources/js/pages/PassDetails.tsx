@@ -5,12 +5,6 @@ import { PassPreview } from "../components/PassPreview";
 import {
     Check,
     X,
-    User,
-    Clock,
-    Building2,
-    IdCard,
-    Users,
-    Calendar,
     Download,
     Eye,
     ImageIcon,
@@ -326,12 +320,12 @@ const PassDetails = () => {
                                                     <Button
                                                         size="sm"
                                                         variant="ghost"
-                                                        onClick={() =>
+                                                        onClick={() => {
                                                             window.open(
                                                                 file.url,
                                                                 "_blank"
-                                                            )
-                                                        }
+                                                            );
+                                                        }}
                                                     >
                                                         <Eye className="h-4 w-4" />
                                                     </Button>

@@ -45,4 +45,9 @@ export const API_ROUTES = {
         ROLES: "/roles",
         PERMISSIONS: "/permissions",
     },
+    KPI: {
+        DASHBOARD: "/api/kpi/dashboard",
+        USER: "/api/kpi/user",
+        UNITS: "/api/kpi/units",
+    },
 };

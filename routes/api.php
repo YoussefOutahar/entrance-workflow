@@ -10,6 +10,7 @@ use App\Http\Controllers\API\UserProfileController;
 use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Auth\TwoFactorAuthController;
+use App\Http\Controllers\API\KpiController;
 use App\Http\Middleware\EnsureUserHasRole;
 
 // Public authentication routes
@@ -89,6 +90,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
             // File management routes
             Route::post('{visitorPass}/files', [FileController::class, 'store']);
             Route::delete('files/{file}', [FileController::class, 'destroy']);
+        });
+
+        Route::prefix('kpi')->group(function () {
+            Route::get('/dashboard', [KpiController::class, 'getDashboardKpis']);
+            Route::get('/user', [KpiController::class, 'getUserKpis']);
+            Route::get('/units', [KpiController::class, 'getUnits']);
         });
     });
 });

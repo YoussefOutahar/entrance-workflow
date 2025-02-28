@@ -1,7 +1,7 @@
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import { AppLayout } from "./layout/AppLayout";
 
@@ -11,6 +11,7 @@ import { Suspense } from "react";
 import LoadingSpinner from "./components/layout/LoadingSpinner";
 import AuthGuard from "./AuthGuard";
 import { AuthProvider } from "./contexts/AuthContext";
+import { PATHS } from "./routes/paths";
 
 const queryClient = new QueryClient();
 
@@ -66,6 +67,13 @@ const App = () => (
                                     }
                                 />
                             ))}
+
+                            <Route
+                                path="/"
+                                element={
+                                    <Navigate to={PATHS.DASHBOARD} replace />
+                                }
+                            />
                         </Routes>
                     </BrowserRouter>
                 </AuthProvider>

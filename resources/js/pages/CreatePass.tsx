@@ -74,7 +74,7 @@ const CreatePass = () => {
                 title: "Success",
                 description: "Pass request submitted successfully.",
             });
-            navigate(`/passes/${response.id}`);
+            navigate(`/pass/${response.id}`);
         } catch (error: any) {
             if (error.response?.data?.errors) {
                 setFormErrors(error.response.data.errors);
