@@ -15,30 +15,41 @@ class GroupResource extends Resource
 {
     protected static ?string $model = Group::class;
     protected static ?string $navigationIcon = 'heroicon-o-user-group';
+    protected static ?string $navigationGroup = 'User Management';
+    protected static ?int $navigationSort = 3;
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('name')
-                    ->required()
-                    ->live(onBlur: true)
-                    ->afterStateUpdated(fn(string $state, Forms\Set $set) =>
-                        $set('slug', Str::slug($state))),
-                Forms\Components\TextInput::make('slug')
-                    ->required()
-                    ->unique(ignoreRecord: true),
-                Forms\Components\Textarea::make('description')
-                    ->rows(3),
-                Forms\Components\Select::make('users')
-                    ->multiple()
-                    ->relationship('users', 'display_name')
-                    ->preload(),
-                Forms\Components\Select::make('permissions')
-                    ->multiple()
-                    ->relationship('permissions', 'name')
-                    ->preload()
-                    ->columnSpanFull(),
+                Forms\Components\Card::make()
+                    ->schema([
+                        Forms\Components\TextInput::make('name')
+                            ->required()
+                            ->maxLength(255)
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(
+                                fn(string $state, callable $set) =>
+                                $set('slug', Str::slug($state))
+                            ),
+                        Forms\Components\TextInput::make('slug')
+                            ->required()
+                            ->maxLength(255)
+                            ->unique(ignoreRecord: true),
+                        Forms\Components\Textarea::make('description')
+                            ->maxLength(65535)
+                            ->rows(3),
+                        Forms\Components\Select::make('users')
+                            ->multiple()
+                            ->relationship('users', 'display_name')
+                            ->preload()
+                            ->searchable(),
+                        Forms\Components\Select::make('permissions')
+                            ->multiple()
+                            ->relationship('permissions', 'name')
+                            ->preload()
+                            ->searchable(),
+                    ]),
             ]);
     }
 
@@ -52,26 +63,47 @@ class GroupResource extends Resource
                 Tables\Columns\TextColumn::make('slug')
                     ->searchable()
                     ->sortable(),
+                Tables\Columns\TextColumn::make('description')
+                    ->limit(50)
+                    ->searchable()
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('users_count')
                     ->counts('users')
-                    ->label('Users'),
+                    ->label('Users')
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('permissions_count')
+                    ->counts('permissions')
+                    ->label('Permissions')
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('permissions.name')
-                    ->badge()
-                    ->label('Permissions'),
-                Tables\Columns\TextColumn::make('created_at')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('updated_at')
                     ->dateTime()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 //
             ])
             ->actions([
+                Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
+            ])
+            ->bulkActions([
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\DeleteBulkAction::make(),
+                ]),
             ]);
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            //
+        ];
     }
 
     public static function getPages(): array

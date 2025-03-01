@@ -115,10 +115,12 @@ class AuthController extends Controller
 
     public function user(): JsonResponse
     {
+        $user = Auth::user()->load(['roles', 'groups.permissions']);
+
         return response()->json([
             'status' => 'success',
             'data' => [
-                'user' => Auth::user()
+                'user' => $user
             ]
         ]);
     }

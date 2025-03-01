@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import {
-    User,
+    User as UserIcon,
     Mail,
     Phone,
     Building,
@@ -16,6 +16,7 @@ import {
     RefreshCw,
     Camera,
     LockKeyhole,
+    Users,
 } from "lucide-react";
 import {
     Card,
@@ -46,18 +47,51 @@ import {
 } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 
-interface ProfileFormData {
+// Define interfaces for our data types
+interface Role {
+    id: number;
+    name: string;
+    slug: string;
+    created_at?: string;
+    updated_at?: string;
+}
+
+interface Group {
+    id: number;
+    name: string;
+    slug: string;
+    description?: string;
+    created_at?: string;
+    updated_at?: string;
+}
+
+interface User {
+    id: number;
     username: string;
     email: string;
     display_name: string;
-    given_name: string;
-    surname: string;
-    department?: string;
-    title?: string;
-    office_phone?: string;
-    mobile_phone?: string;
-    office_location?: string;
+    is_active: boolean;
+    // Security information
+    email_verified_at?: string;
+    two_factor_enabled?: boolean;
+    password_last_set?: string;
+    account_expires_at?: string;
+    // Relationships
+    roles?: Role[];
+    groups?: Group[];
+    created_at: string;
+    updated_at: string;
+}
+
+interface ProfileFormData {
+    display_name: string;
 }
 
 interface PasswordFormData {
@@ -75,12 +109,10 @@ interface TwoFactorDialogState {
 
 const Profile = () => {
     const { toast } = useToast();
-    const [user, setUser] = useState<any>(null);
+    const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [changingPassword, setChangingPassword] = useState(false);
-    const [roles, setRoles] = useState<string[]>([]);
-    const [groups, setGroups] = useState<string[]>([]);
     const [twoFactorDialog, setTwoFactorDialog] =
         useState<TwoFactorDialogState>({
             isOpen: false,
@@ -144,37 +176,13 @@ const Profile = () => {
             try {
                 setLoading(true);
                 const response = await userService.getUserProfile();
-                const userData = response.data.data.user;
+                const userData = response.data.user;
                 setUser(userData);
 
-                // Extract roles and groups
-                if (userData.roles) {
-                    setRoles(userData.roles.map((role: any) => role.name));
-                }
-                if (userData.groups) {
-                    setGroups(userData.groups.map((group: any) => group.name));
-                }
-
                 // Set form values
-                Object.keys(userData).forEach((key) => {
-                    if (
-                        key in
-                        {
-                            username: "",
-                            email: "",
-                            display_name: "",
-                            given_name: "",
-                            surname: "",
-                            department: "",
-                            title: "",
-                            office_phone: "",
-                            mobile_phone: "",
-                            office_location: "",
-                        }
-                    ) {
-                        setValue(key as keyof ProfileFormData, userData[key]);
-                    }
-                });
+                if (userData.display_name) {
+                    setValue("display_name", userData.display_name);
+                }
             } catch (error) {
                 console.error("Error fetching user data:", error);
                 toast({
@@ -194,16 +202,18 @@ const Profile = () => {
     const onProfileSubmit = async (data: ProfileFormData) => {
         try {
             setSaving(true);
-            await userService.updateUserProfile(user.id, data);
+            await userService.updateUserProfile(user?.id || 0, data);
             toast({
                 title: "Profile Updated",
                 description: "Your profile has been updated successfully.",
             });
 
             // Update local storage user data
-            const updatedUser = { ...user, ...data };
-            authStorage.setUser(updatedUser);
-            setUser(updatedUser);
+            if (user) {
+                const updatedUser = { ...user, ...data };
+                authStorage.setUser(updatedUser);
+                setUser(updatedUser);
+            }
         } catch (error) {
             console.error("Error updating profile:", error);
             toast({
@@ -219,7 +229,7 @@ const Profile = () => {
     const onPasswordSubmit = async (data: PasswordFormData) => {
         try {
             setChangingPassword(true);
-            await userService.changePassword(user.id, data);
+            await userService.changePassword(user?.id || 0, data);
             toast({
                 title: "Password Changed",
                 description: "Your password has been changed successfully.",
@@ -264,9 +274,11 @@ const Profile = () => {
             await userService.confirmTwoFactorAuth(confirmationCode);
 
             // Update user data
-            const updatedUser = { ...user, two_factor_enabled: true };
-            setUser(updatedUser);
-            authStorage.setUser(updatedUser);
+            if (user) {
+                const updatedUser = { ...user, two_factor_enabled: true };
+                setUser(updatedUser);
+                authStorage.setUser(updatedUser);
+            }
 
             setTwoFactorDialog({
                 ...twoFactorDialog,
@@ -295,9 +307,11 @@ const Profile = () => {
             await userService.toggleTwoFactorAuth(false);
 
             // Update user data
-            const updatedUser = { ...user, two_factor_enabled: false };
-            setUser(updatedUser);
-            authStorage.setUser(updatedUser);
+            if (user) {
+                const updatedUser = { ...user, two_factor_enabled: false };
+                setUser(updatedUser);
+                authStorage.setUser(updatedUser);
+            }
 
             toast({
                 title: "Success",
@@ -404,42 +418,75 @@ const Profile = () => {
                         <Separator className="my-6" />
 
                         <div className="w-full space-y-4">
-                            <div>
-                                <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
-                                    Roles
-                                </h4>
-                                <div className="flex flex-wrap gap-2">
-                                    {roles.map((role) => (
-                                        <Badge key={role} variant="secondary">
-                                            {role}
-                                        </Badge>
-                                    ))}
-                                </div>
-                            </div>
-                            <div>
-                                <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
-                                    Groups
-                                </h4>
-                                <div className="flex flex-wrap gap-2">
-                                    {groups.map((group) => (
-                                        <Badge key={group} variant="outline">
-                                            {group}
-                                        </Badge>
-                                    ))}
-                                </div>
-                            </div>
-                            {user?.two_factor_enabled !== undefined && (
+                            {/* Roles section */}
+                            {user?.roles && user.roles.length > 0 && (
                                 <div>
-                                    <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
-                                        Security
-                                    </h4>
+                                    <div className="flex items-center gap-2 text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
+                                        <Users className="h-4 w-4" />
+                                        <h4>Roles</h4>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {user.roles.map((role) => (
+                                            <TooltipProvider key={role.id}>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <Badge variant="secondary">
+                                                            {role.name}
+                                                        </Badge>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>{role.slug}</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Groups section */}
+                            {user?.groups && user.groups.length > 0 && (
+                                <div>
+                                    <div className="flex items-center gap-2 text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
+                                        <Users className="h-4 w-4" />
+                                        <h4>Groups</h4>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {user.groups.map((group) => (
+                                            <TooltipProvider key={group.id}>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <Badge variant="outline">
+                                                            {group.name}
+                                                        </Badge>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>
+                                                            {group.description ||
+                                                                group.slug}
+                                                        </p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Account status section */}
+                            <div>
+                                <div className="flex items-center gap-2 text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
+                                    <Shield className="h-4 w-4" />
+                                    <h4>Account Status</h4>
+                                </div>
+                                <div className="flex flex-wrap gap-2">
                                     <Badge
-                                        variant="default"
-                                        className={`px-3 py-1 ${
+                                        variant={
                                             user?.is_active
-                                                ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
-                                                : ""
-                                        }`}
+                                                ? "default"
+                                                : "destructive"
+                                        }
+                                        className="px-3 py-1"
                                     >
                                         {user?.is_active ? (
                                             <>
@@ -453,8 +500,74 @@ const Profile = () => {
                                             </>
                                         )}
                                     </Badge>
+
+                                    {user?.email_verified_at && (
+                                        <Badge
+                                            variant="outline"
+                                            className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
+                                        >
+                                            <CheckCircle className="h-4 w-4 mr-1" />{" "}
+                                            Email Verified
+                                        </Badge>
+                                    )}
+
+                                    {user?.two_factor_enabled && (
+                                        <Badge
+                                            variant="outline"
+                                            className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"
+                                        >
+                                            <Shield className="h-4 w-4 mr-1" />{" "}
+                                            2FA Enabled
+                                        </Badge>
+                                    )}
                                 </div>
-                            )}
+                            </div>
+
+                            {/* Account details section */}
+                            <div>
+                                <div className="flex items-center gap-2 text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
+                                    <UserIcon className="h-4 w-4" />
+                                    <h4>Account Details</h4>
+                                </div>
+                                <div className="space-y-2 text-sm">
+                                    {user?.password_last_set && (
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-500 dark:text-gray-400">
+                                                Password changed:
+                                            </span>
+                                            <span>
+                                                {new Date(
+                                                    user.password_last_set
+                                                ).toLocaleDateString()}
+                                            </span>
+                                        </div>
+                                    )}
+                                    {user?.account_expires_at && (
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-500 dark:text-gray-400">
+                                                Account expires:
+                                            </span>
+                                            <span>
+                                                {new Date(
+                                                    user.account_expires_at
+                                                ).toLocaleDateString()}
+                                            </span>
+                                        </div>
+                                    )}
+                                    {user?.created_at && (
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-500 dark:text-gray-400">
+                                                Member since:
+                                            </span>
+                                            <span>
+                                                {new Date(
+                                                    user.created_at
+                                                ).toLocaleDateString()}
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                         </div>
                     </CardContent>
                 </Card>
@@ -463,7 +576,7 @@ const Profile = () => {
                     <Tabs defaultValue="personal" className="w-full">
                         <TabsList className="mb-6 w-full">
                             <TabsTrigger value="personal" className="flex-1">
-                                <User className="h-4 w-4 mr-2" />
+                                <UserIcon className="h-4 w-4 mr-2" />
                                 Personal Information
                             </TabsTrigger>
                             <TabsTrigger value="security" className="flex-1">
@@ -488,35 +601,22 @@ const Profile = () => {
                                         className="space-y-6"
                                         id="profile-form"
                                     >
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div className="grid grid-cols-1 gap-6">
                                             <div className="space-y-2">
                                                 <Label htmlFor="username">
                                                     Username
                                                 </Label>
                                                 <div className="relative">
-                                                    <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                                                    <UserIcon className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                                                     <Input
                                                         id="username"
                                                         className="pl-10"
-                                                        {...registerProfile(
-                                                            "username",
-                                                            {
-                                                                required:
-                                                                    "Username is required",
-                                                            }
-                                                        )}
+                                                        value={
+                                                            user?.username || ""
+                                                        }
                                                         disabled
                                                     />
                                                 </div>
-                                                {profileErrors.username && (
-                                                    <p className="text-sm text-red-500">
-                                                        {
-                                                            profileErrors
-                                                                .username
-                                                                .message
-                                                        }
-                                                    </p>
-                                                )}
                                             </div>
 
                                             <div className="space-y-2">
@@ -529,29 +629,12 @@ const Profile = () => {
                                                         id="email"
                                                         type="email"
                                                         className="pl-10"
-                                                        {...registerProfile(
-                                                            "email",
-                                                            {
-                                                                required:
-                                                                    "Email is required",
-                                                                pattern: {
-                                                                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                                                                    message:
-                                                                        "Invalid email address",
-                                                                },
-                                                            }
-                                                        )}
+                                                        value={
+                                                            user?.email || ""
+                                                        }
                                                         disabled
                                                     />
                                                 </div>
-                                                {profileErrors.email && (
-                                                    <p className="text-sm text-red-500">
-                                                        {
-                                                            profileErrors.email
-                                                                .message
-                                                        }
-                                                    </p>
-                                                )}
                                             </div>
 
                                             <div className="space-y-2">
@@ -577,135 +660,6 @@ const Profile = () => {
                                                         }
                                                     </p>
                                                 )}
-                                            </div>
-
-                                            <div className="space-y-2">
-                                                <Label htmlFor="given_name">
-                                                    First Name
-                                                </Label>
-                                                <Input
-                                                    id="given_name"
-                                                    {...registerProfile(
-                                                        "given_name",
-                                                        {
-                                                            required:
-                                                                "First name is required",
-                                                        }
-                                                    )}
-                                                />
-                                                {profileErrors.given_name && (
-                                                    <p className="text-sm text-red-500">
-                                                        {
-                                                            profileErrors
-                                                                .given_name
-                                                                .message
-                                                        }
-                                                    </p>
-                                                )}
-                                            </div>
-
-                                            <div className="space-y-2">
-                                                <Label htmlFor="surname">
-                                                    Last Name
-                                                </Label>
-                                                <Input
-                                                    id="surname"
-                                                    {...registerProfile(
-                                                        "surname",
-                                                        {
-                                                            required:
-                                                                "Last name is required",
-                                                        }
-                                                    )}
-                                                />
-                                                {profileErrors.surname && (
-                                                    <p className="text-sm text-red-500">
-                                                        {
-                                                            profileErrors
-                                                                .surname.message
-                                                        }
-                                                    </p>
-                                                )}
-                                            </div>
-
-                                            <div className="space-y-2">
-                                                <Label htmlFor="department">
-                                                    Department
-                                                </Label>
-                                                <div className="relative">
-                                                    <Building className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                                                    <Input
-                                                        id="department"
-                                                        className="pl-10"
-                                                        {...registerProfile(
-                                                            "department"
-                                                        )}
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            <div className="space-y-2">
-                                                <Label htmlFor="title">
-                                                    Job Title
-                                                </Label>
-                                                <div className="relative">
-                                                    <Briefcase className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                                                    <Input
-                                                        id="title"
-                                                        className="pl-10"
-                                                        {...registerProfile(
-                                                            "title"
-                                                        )}
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            <div className="space-y-2">
-                                                <Label htmlFor="office_phone">
-                                                    Office Phone
-                                                </Label>
-                                                <div className="relative">
-                                                    <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                                                    <Input
-                                                        id="office_phone"
-                                                        className="pl-10"
-                                                        {...registerProfile(
-                                                            "office_phone"
-                                                        )}
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            <div className="space-y-2">
-                                                <Label htmlFor="mobile_phone">
-                                                    Mobile Phone
-                                                </Label>
-                                                <div className="relative">
-                                                    <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                                                    <Input
-                                                        id="mobile_phone"
-                                                        className="pl-10"
-                                                        {...registerProfile(
-                                                            "mobile_phone"
-                                                        )}
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            <div className="space-y-2">
-                                                <Label htmlFor="office_location">
-                                                    Office Location
-                                                </Label>
-                                                <div className="relative">
-                                                    <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                                                    <Input
-                                                        id="office_location"
-                                                        className="pl-10"
-                                                        {...registerProfile(
-                                                            "office_location"
-                                                        )}
-                                                    />
-                                                </div>
                                             </div>
                                         </div>
                                     </form>

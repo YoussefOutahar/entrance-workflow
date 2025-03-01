@@ -1,33 +1,56 @@
-export interface UserData {
+export interface User {
+    id: number;
     username: string;
     email: string;
-    password: string;
     display_name: string;
-    given_name: string;
-    surname: string;
-    initials?: string;
-    employee_id?: string;
-    company?: string;
-    department?: string;
-    title?: string;
-    manager_id?: number;
-    office_phone?: string;
-    mobile_phone?: string;
-    office_location?: string;
-    street_address?: string;
-    city?: string;
-    state?: string;
-    postal_code?: string;
-    country?: string;
-    two_factor_enabled?: boolean;
+    is_active: boolean;
+
+    // Security information
     email_verified_at?: string;
+    two_factor_enabled?: boolean;
+    password_last_set?: string;
+    account_expires_at?: string;
+
+    // Relationships
+    roles?: Role[];
+    groups?: Group[];
+
+    created_at: string;
+    updated_at: string;
+}
+
+export interface Role {
+    id: number;
+    name: string;
+    slug: string;
+    created_at?: string;
+    updated_at?: string;
+}
+
+export interface Group {
+    id: number;
+    name: string;
+    slug: string;
+    description?: string;
+    permissions?: Permission[];
+    created_at?: string;
+    updated_at?: string;
+}
+
+export interface Permission {
+    id: number;
+    name: string;
+    slug: string;
+    description?: string;
+    created_at?: string;
+    updated_at?: string;
 }
 
 export interface AuthResponse {
     status: string;
     message: string;
     data: {
-        user: UserData;
+        user: User;
         token: string;
         refreshToken: string;
     };

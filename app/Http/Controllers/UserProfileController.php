@@ -13,7 +13,7 @@ class UserProfileController extends Controller
 {
     public function show()
     {
-        $user = Auth::user()->load(['roles', 'groups']);
+        $user = Auth::user()->load(['roles', 'groups.permissions']);
         return response()->json([
             'status' => 'success',
             'data' => [
