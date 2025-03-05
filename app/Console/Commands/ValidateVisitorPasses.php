@@ -23,12 +23,27 @@ class ValidateVisitorPasses extends Command
 
         $this->info('Validation complete in ' . $duration . ' seconds');
         $this->table(
-            ['Total Checked', 'Validated', 'Errors'],
-            [[$stats['total_checked'], $stats['validated'], $stats['errors']]]
+            ['Total Checked', 'Auto-Accepted', 'Validated', 'Errors'],
+            [[$stats['total_checked'], $stats['auto_accepted'] ?? 0, $stats['validated'], $stats['errors']]]
         );
 
         if (isset($stats['message'])) {
             $this->error('Error message: ' . $stats['message']);
+        }
+
+        // Display diagnostics
+        if (isset($stats['diagnostics']) && !empty($stats['diagnostics'])) {
+            $this->info('Diagnostic Information:');
+            foreach ($stats['diagnostics'] as $key => $value) {
+                if (is_array($value)) {
+                    $this->info("- {$key}:");
+                    foreach ($value as $subKey => $subValue) {
+                        $this->info("  - {$subValue}");
+                    }
+                } else {
+                    $this->info("- {$key}: {$value}");
+                }
+            }
         }
 
         // Send notification if requested
