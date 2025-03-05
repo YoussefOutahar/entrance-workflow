@@ -2,6 +2,7 @@
 import {
     LayoutDashboard,
     BadgeCheck,
+    Plus,
     Users,
     Shield,
     User,
@@ -32,6 +33,16 @@ export const sidebarItems: SidebarItems = [
                 icon: LayoutDashboard,
                 url: PATHS.DASHBOARD,
             },
+        ],
+    },
+    {
+        group: "Management",
+        items: [
+            {
+                title: "New Pass",
+                icon: Plus,
+                url: PATHS.CREATE_PASS,
+            },
             {
                 title: "Pass Management",
                 icon: BadgeCheck,
@@ -39,21 +50,6 @@ export const sidebarItems: SidebarItems = [
             },
         ],
     },
-    // {
-    //     group: "Management",
-    //     items: [
-    //         {
-    //             title: "Users",
-    //             icon: Users,
-    //             url: "/users",
-    //         },
-    //         {
-    //             title: "Security",
-    //             icon: Shield,
-    //             url: "/security",
-    //         },
-    //     ],
-    // },
     {
         group: "Settings",
         items: [

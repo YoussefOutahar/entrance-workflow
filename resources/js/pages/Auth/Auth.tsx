@@ -6,6 +6,8 @@ import useAuth from "../../hooks/use-auth";
 import { authStorage } from "../../services/LocalStorage/AuthStorage";
 import { DEFAULT_REDIRECTS } from "../../AuthGuard";
 
+import { Separator } from "../../components/ui/separator";
+
 function Login() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -38,23 +40,6 @@ function Login() {
 
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-            <div className="sm:mx-auto sm:w-full sm:max-w-md">
-                <div className="flex justify-center">
-                    <img
-                        src="/app-logo.svg"
-                        alt="CNESTEN Logo"
-                        className="h-16 w-auto"
-                    />
-                </div>
-                <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white">
-                    CNESTEN
-                </h2>
-                <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
-                    Centre National de l'Energie des Sciences et des Techniques
-                    Nucléaires
-                </p>
-            </div>
-
             <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
                 <div className="bg-white dark:bg-gray-800 py-8 px-4 shadow sm:rounded-lg sm:px-10">
                     {error && (
@@ -65,6 +50,25 @@ function Login() {
                             {error.message}
                         </div>
                     )}
+
+                    <div className="sm:mx-auto sm:w-full sm:max-w-md">
+                        <div className="flex justify-center">
+                            <img
+                                src="/app-logo.svg"
+                                alt="CNESTEN Logo"
+                                className="h-16 w-auto"
+                            />
+                        </div>
+                        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white">
+                            CNESTEN
+                        </h2>
+                        <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
+                            Centre National de l'Energie des Sciences et des
+                            Techniques Nucléaires
+                        </p>
+                    </div>
+
+                    <Separator className="my-6" />
 
                     <form className="space-y-6" onSubmit={handleSubmit}>
                         <div>
@@ -152,7 +156,7 @@ function Login() {
                     </form>
 
                     {/* Optional: Add a forgot password link */}
-                    <div className="mt-6">
+                    {/* <div className="mt-6">
                         <div className="text-center">
                             <a
                                 href="/auth/forgot-password"
@@ -162,7 +166,7 @@ function Login() {
                                 Forgot your password?
                             </a>
                         </div>
-                    </div>
+                    </div>*/}
                 </div>
             </div>
         </div>

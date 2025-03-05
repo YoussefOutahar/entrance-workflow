@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import React, { ReactNode } from "react";
 import { Shield, LogOut } from "lucide-react";
 import {
     SidebarProvider,
@@ -12,7 +12,7 @@ import {
 } from "../components/ui/sidebar";
 import { ThemeToggle } from "../components/layout/ThemeToggle";
 import { sidebarItems } from "../layout/navigation";
-import { Button } from "@/components/ui/button";
+import { Button } from "../components/ui/button";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { authService } from "../services/auth.service";
