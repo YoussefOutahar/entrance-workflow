@@ -234,6 +234,37 @@ Chaque action dans le workflow crée une entrée dans le journal d'activité:
 -   L'horodatage de l'action
 -   Les notes fournies lors de l'approbation/rejet
 
+## Validation Automatique des Laissez-passer
+
+Le système inclut une tâche CRON automatisée qui valide les laissez-passer visiteurs à leur date de visite prévue:
+
+### Fonctionnement
+
+1. Une commande programmée `visitor-passes:validate` s'exécute quotidiennement à 6h00
+2. Elle identifie tous les laissez-passer approuvés dont la date de visite correspond au jour actuel
+3. Chaque laissez-passer est automatiquement validé et enregistré dans le journal d'activité
+4. Les administrateurs système reçoivent une notification avec les statistiques de validation
+
+### Test du Processus de Validation
+
+Pour tester manuellement le processus de validation:
+
+```bash
+# Exécuter la validation sans notifications
+php artisan visitor-passes:validate
+
+# Exécuter la validation avec notifications aux administrateurs
+php artisan visitor-passes:validate --notify
+Le processus de validation va:
+
+Trouver tous les laissez-passer avec la date d'aujourd'hui qui sont au statut "accepted"
+Ajouter une entrée d'activité pour chaque laissez-passer indiquant qu'il a été validé
+Générer des statistiques sur le nombre de laissez-passer validés
+
+Configuration du Serveur
+Pour que la validation s'exécute automatiquement, assurez-vous que votre serveur a le planificateur Laravel configuré:
+bashCopy* * * * * cd /chemin-vers-votre-projet && php artisan schedule:run >> /dev/null 2>&1
+
 ## Dépannage
 
 -   **Problèmes de Permission**: Vérifiez que l'utilisateur appartient au bon groupe et a le rôle approprié
@@ -243,3 +274,4 @@ Chaque action dans le workflow crée une entrée dans le journal d'activité:
 ## Conclusion
 
 Ce guide de test devrait vous aider à vérifier tous les aspects du système de workflow des laissez-passer visiteurs. Les données préchargées fournissent un ensemble complet d'utilisateurs et de groupes pour tester chaque étape du processus d'approbation.
+```

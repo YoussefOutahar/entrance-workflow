@@ -242,6 +242,37 @@ Each action in the workflow creates an activity log entry:
 -   Timestamp of the action
 -   Notes provided during the approval/rejection
 
+## Automatic Pass Validation
+
+The system includes an automated CRON job that validates visitor passes on their scheduled visit date:
+
+### How It Works
+
+1. A scheduled command `visitor-passes:validate` runs daily at 6:00 AM
+2. It identifies all approved passes with a visit date matching the current day
+3. Each pass is automatically validated and recorded in the activity log
+4. System administrators receive a notification with validation statistics
+
+### Testing the Validation Process
+
+To test the validation process manually:
+
+```bash
+# Run validation without notifications
+php artisan visitor-passes:validate
+
+# Run validation with admin notifications
+php artisan visitor-passes:validate --notify
+The validation process will:
+
+Find all passes with today's date that are in "accepted" status
+Add an activity entry for each pass indicating it has been validated
+Generate statistics on how many passes were validated
+
+Server Configuration
+For the validation to run automatically, ensure your server has the Laravel scheduler configured:
+bashCopy* * * * * cd /path-to-your-project && php artisan schedule:run >> /dev/null 2>&1
+
 ## Troubleshooting
 
 -   **Permission Issues**: Verify user belongs to the correct group and has the right role
@@ -251,3 +282,4 @@ Each action in the workflow creates an activity log entry:
 ## Conclusion
 
 This testing guide should help you verify all aspects of the visitor pass workflow system. The seeded data provides a comprehensive set of users and groups to test each stage of the approval process.
+```
