@@ -8,7 +8,7 @@ use App\Models\Role;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
-class DataSeeder extends Seeder
+class UserSeeder extends Seeder
 {
     public function run(): void
     {
@@ -28,39 +28,16 @@ class DataSeeder extends Seeder
             ['name' => 'Administrator']
         );
 
-        // Create additional groups
-        $groups = [
-            [
-                'name' => 'IT Department',
-                'slug' => 'it-department',
-                'description' => 'Information Technology team'
-            ],
-            [
-                'name' => 'Human Resources',
-                'slug' => 'hr',
-                'description' => 'Human Resources department'
-            ],
-            [
-                'name' => 'Maintenance',
-                'slug' => 'maintenance',
-                'description' => 'Maintenance and facilities team'
-            ],
-            [
-                'name' => 'Security',
-                'slug' => 'security',
-                'description' => 'Security personnel'
-            ]
-        ];
-
+        // Get all groups from database
+        $groups = Group::all();
         $createdGroups = [];
 
-        foreach ($groups as $groupData) {
-            $group = Group::firstOrCreate(
-                ['slug' => $groupData['slug']],
-                $groupData
-            );
+        foreach ($groups as $group) {
             $createdGroups[$group->slug] = $group;
         }
+
+        // Workflow groups that don't need chef users
+        $workflowGroups = ['service-permis', 'barriere', 'gendarmerie'];
 
         // Create users for each group
         foreach ($createdGroups as $slug => $group) {
@@ -80,21 +57,23 @@ class DataSeeder extends Seeder
             $user->roles()->sync([$userRole->id]);
             $user->groups()->sync([$group->id]);
 
-            // Create a chef (supervisor) for this group
-            $chef = User::firstOrCreate(
-                ['email' => "chef.{$slug}@system.com"],
-                [
-                    'username' => "chef.{$slug}",
-                    'password' => Hash::make('Chef123!'),
-                    'display_name' => ucwords(str_replace('-', ' ', $slug)) . ' Supervisor',
-                    'is_active' => true,
-                    'email_verified_at' => now(),
-                    'password_last_set' => now(),
-                    'two_factor_enabled' => false,
-                ]
-            );
-            $chef->roles()->sync([$chefRole->id]);
-            $chef->groups()->sync([$group->id]);
+            // Create a chef (supervisor) for regular departments
+            if (!in_array($slug, $workflowGroups)) {
+                $chef = User::firstOrCreate(
+                    ['email' => "chef.{$slug}@system.com"],
+                    [
+                        'username' => "chef.{$slug}",
+                        'password' => Hash::make('Chef123!'),
+                        'display_name' => ucwords(str_replace('-', ' ', $slug)) . ' Supervisor',
+                        'is_active' => true,
+                        'email_verified_at' => now(),
+                        'password_last_set' => now(),
+                        'two_factor_enabled' => false,
+                    ]
+                );
+                $chef->roles()->sync([$chefRole->id]);
+                $chef->groups()->sync([$group->id]);
+            }
         }
 
         // Create a multi-group user
@@ -112,8 +91,8 @@ class DataSeeder extends Seeder
         );
         $multiGroupUser->roles()->sync([$userRole->id]);
         $multiGroupUser->groups()->attach([
-            $createdGroups['it-department']->id,
-            $createdGroups['hr']->id
+            $createdGroups['informatique']->id,
+            $createdGroups['rh']->id
         ]);
 
         // Create a multi-role user
@@ -130,7 +109,56 @@ class DataSeeder extends Seeder
             ]
         );
         $multiRoleUser->roles()->sync([$userRole->id, $chefRole->id]);
-        $multiRoleUser->groups()->sync([$createdGroups['security']->id]);
+        $multiRoleUser->groups()->sync([$createdGroups['securite']->id]);
+
+        // Create workflow test users with specific credentials
+        // Service des Permis user with direct login
+        $sppUser = User::firstOrCreate(
+            ['email' => 'spp@system.com'],
+            [
+                'username' => 'spp',
+                'password' => Hash::make('SPP123!'),
+                'display_name' => 'Service des Permis Reviewer',
+                'is_active' => true,
+                'email_verified_at' => now(),
+                'password_last_set' => now(),
+                'two_factor_enabled' => false,
+            ]
+        );
+        $sppUser->roles()->sync([$userRole->id]);
+        $sppUser->groups()->sync([$createdGroups['service-permis']->id]);
+
+        // Barriere user with direct login
+        $barriereUser = User::firstOrCreate(
+            ['email' => 'barriere@system.com'],
+            [
+                'username' => 'barriere',
+                'password' => Hash::make('Barriere123!'),
+                'display_name' => 'Barrière Approver',
+                'is_active' => true,
+                'email_verified_at' => now(),
+                'password_last_set' => now(),
+                'two_factor_enabled' => false,
+            ]
+        );
+        $barriereUser->roles()->sync([$userRole->id]);
+        $barriereUser->groups()->sync([$createdGroups['barriere']->id]);
+
+        // Gendarmerie user with direct login
+        $gendarmerieUser = User::firstOrCreate(
+            ['email' => 'gendarmerie@system.com'],
+            [
+                'username' => 'gendarmerie',
+                'password' => Hash::make('Gendarmerie123!'),
+                'display_name' => 'Gendarmerie Approver',
+                'is_active' => true,
+                'email_verified_at' => now(),
+                'password_last_set' => now(),
+                'two_factor_enabled' => false,
+            ]
+        );
+        $gendarmerieUser->roles()->sync([$userRole->id]);
+        $gendarmerieUser->groups()->sync([$createdGroups['gendarmerie']->id]);
 
         // Create an inactive user
         $inactiveUser = User::firstOrCreate(
@@ -146,7 +174,7 @@ class DataSeeder extends Seeder
             ]
         );
         $inactiveUser->roles()->sync([$userRole->id]);
-        $inactiveUser->groups()->sync([$createdGroups['hr']->id]);
+        $inactiveUser->groups()->sync([$createdGroups['rh']->id]);
 
         // Create a 2FA-enabled user
         $twoFactorUser = User::firstOrCreate(
@@ -162,6 +190,6 @@ class DataSeeder extends Seeder
             ]
         );
         $twoFactorUser->roles()->sync([$userRole->id]);
-        $twoFactorUser->groups()->sync([$createdGroups['it-department']->id]);
+        $twoFactorUser->groups()->sync([$createdGroups['informatique']->id]);
     }
 }

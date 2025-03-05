@@ -96,10 +96,24 @@ class PermissionSeeder extends Seeder
             );
         }
 
-        // All other groups need create permission
-        $otherGroups = ['it-department', 'hr', 'maintenance', 'security'];
+        // All department groups need create permission
+        $departmentGroups = [
+            'administration',
+            'finances',
+            'logistique',
+            'rh',
+            'informatique',
+            'operations',
+            'laboratoire',
+            'securite',
+            'maintenance',
+            'formation',
+            'communication',
+            'juridique',
+            'qualite'
+        ];
 
-        foreach ($otherGroups as $groupSlug) {
+        foreach ($departmentGroups as $groupSlug) {
             $group = Group::where('slug', $groupSlug)->first();
             if ($group) {
                 $group->permissions()->sync(
@@ -112,7 +126,7 @@ class PermissionSeeder extends Seeder
         }
 
         // IT Department also needs management permissions
-        $itDepartment = Group::where('slug', 'it-department')->first();
+        $itDepartment = Group::where('slug', 'informatique')->first();
         if ($itDepartment) {
             $itDepartment->permissions()->syncWithoutDetaching(
                 Permission::whereIn('slug', [
