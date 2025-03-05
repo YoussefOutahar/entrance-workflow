@@ -80,13 +80,23 @@ class VisitorPassWorkflowController extends Controller
             }
         }
 
-        // For Service des Permis review
+        // For Service des Permis review - now with bypass option
         if ($user->can('review', $visitorPass)) {
+            // Normal review for passes at started stage
             if ($visitorPass->status === 'started') {
                 $actions[] = [
                     'action' => 'service_permis_review',
                     'available_statuses' => ['in_progress'],
                     'label' => 'Mark as Reviewed'
+                ];
+            }
+
+            // Bypass chef approval for passes at awaiting or pending_chef stages
+            if (in_array($visitorPass->status, ['awaiting', 'pending_chef'])) {
+                $actions[] = [
+                    'action' => 'bypass_chef',
+                    'available_statuses' => ['in_progress'],
+                    'label' => 'Bypass Chef & Review'
                 ];
             }
         }
@@ -102,7 +112,7 @@ class VisitorPassWorkflowController extends Controller
             }
         }
 
-        // For rejection:
+        // For rejection logic - unchanged from your last requirements
 
         // 1. Pass creator can reject their own pass if not yet fully approved
         if ($user->id === $visitorPass->created_by && !in_array($visitorPass->status, ['accepted', 'declined'])) {
@@ -131,8 +141,8 @@ class VisitorPassWorkflowController extends Controller
             }
         }
 
-        // 3. Service des Permis can reject at started stage
-        if ($user->can('review', $visitorPass) && $visitorPass->status === 'started') {
+        // 3. Service des Permis can reject at started stage or during bypass
+        if ($user->can('review', $visitorPass) && in_array($visitorPass->status, ['awaiting', 'pending_chef', 'started'])) {
             $actions[] = [
                 'action' => 'reject',
                 'available_statuses' => ['declined'],

@@ -12,8 +12,8 @@ class VisitorPassWorkflowService
 {
     // Update transitions to enforce the correct workflow
     private array $allowedTransitions = [
-        'awaiting' => ['pending_chef', 'started', 'declined'],  // Admin/chef can go straight to started
-        'pending_chef' => ['started', 'declined'],              // Chef approval to Service des Permis
+        'awaiting' => ['pending_chef', 'started', 'in_progress', 'declined'],  // Admin/chef can go straight to started
+        'pending_chef' => ['started', 'in_progress', 'declined'],              // Chef approval to Service des Permis
         'started' => ['in_progress', 'declined'],               // Service des Permis reviewing
         'in_progress' => ['accepted', 'declined'],              // Ready for Gendarmerie/Barrière approval
         'accepted' => ['awaiting'],                             // Reset if needed
@@ -49,6 +49,18 @@ class VisitorPassWorkflowService
                 $bypassCheck = true;
             }
 
+            // Special case: Allow Service des Permis to bypass chef
+            if (
+                in_array($visitorPass->status, ['awaiting', 'pending_chef']) &&
+                $newStatus === 'in_progress' &&
+                $user->can('review', $visitorPass)
+            ) {
+                $bypassCheck = true;
+
+                // Set custom message for this bypass
+                $this->transitionMessages[$newStatus] = 'Pass directly reviewed by Service des Permis (chef approval bypassed)';
+            }
+
             if (!$bypassCheck && !$this->userCanTransition($user, $visitorPass, $newStatus)) {
                 throw new AuthorizationException("User not authorized for this transition");
             }
@@ -62,6 +74,12 @@ class VisitorPassWorkflowService
                 $visitorPass->save();
             }
 
+            // For the bypass case, add a specific transition type
+            $transitionType = $this->getTransitionType($oldStatus, $newStatus);
+            if (in_array($oldStatus, ['awaiting', 'pending_chef']) && $newStatus === 'in_progress') {
+                $transitionType = 'chef_bypass_service_review';
+            }
+
             // Log status change activity
             Activity::create([
                 'subject_type' => get_class($visitorPass),
@@ -72,7 +90,7 @@ class VisitorPassWorkflowService
                     'old_status' => $oldStatus,
                     'new_status' => $newStatus,
                     'notes' => $notes,
-                    'transition_type' => $this->getTransitionType($oldStatus, $newStatus),
+                    'transition_type' => $transitionType,
                     'system_message' => $this->transitionMessages[$newStatus],
                     'changed_at' => now()->toIso8601String(),
                     'user_group' => $user->groups()->first() ? $user->groups()->first()->name : null
@@ -92,6 +110,7 @@ class VisitorPassWorkflowService
         }
     }
 
+
     private function isValidTransition(string $currentStatus, string $newStatus): bool
     {
         return isset($this->allowedTransitions[$currentStatus]) &&
@@ -110,7 +129,16 @@ class VisitorPassWorkflowService
             return true;
         }
 
-        // For rejection, check specific permissions
+        // Service des Permis bypass: can go from awaiting/pending_chef directly to in_progress
+        if (
+            in_array($visitorPass->status, ['awaiting', 'pending_chef']) &&
+            $newStatus === 'in_progress' &&
+            $user->can('review', $visitorPass)
+        ) {
+            return true;
+        }
+
+        // For rejection, check specific permissions - unchanged from previous version
         if ($newStatus === 'declined') {
             // Creator can always reject their own pass if not yet fully approved
             if ($user->id === $visitorPass->created_by && !in_array($visitorPass->status, ['accepted', 'declined'])) {
@@ -130,8 +158,8 @@ class VisitorPassWorkflowService
                 return count(array_intersect($creatorGroups, $chefGroups)) > 0;
             }
 
-            // Service des Permis can reject at started stage
-            if ($visitorPass->status === 'started' && $user->can('review', $visitorPass)) {
+            // Service des Permis can reject at started stage or bypass stages
+            if (in_array($visitorPass->status, ['awaiting', 'pending_chef', 'started']) && $user->can('review', $visitorPass)) {
                 return true;
             }
 
@@ -156,6 +184,11 @@ class VisitorPassWorkflowService
 
     private function getTransitionType(string $oldStatus, string $newStatus): string
     {
+        // Handle Service des Permis bypass case
+        if (in_array($oldStatus, ['awaiting', 'pending_chef']) && $newStatus === 'in_progress') {
+            return 'chef_bypass_service_review';
+        }
+
         return match ($newStatus) {
             'pending_chef' => 'submitted_to_chef',
             'started' => 'chef_approved',

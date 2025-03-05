@@ -43,9 +43,18 @@ class VisitorPassPolicy
 
     public function review(User $user, VisitorPass $visitorPass): bool
     {
-        // This is for Service des Permis to review (in_progress status)
-        return $this->hasPermission($user, 'review-visitor-pass') ||
-            $user->hasRole('admin');
+        // Admin can always review
+        if ($user->hasRole('admin')) {
+            return true;
+        }
+
+        // Service des Permis can review passes at started stage or bypass chef approval
+        // for passes at awaiting or pending_chef stages
+        if ($this->hasPermission($user, 'review-visitor-pass')) {
+            return in_array($visitorPass->status, ['awaiting', 'pending_chef', 'started']);
+        }
+
+        return false;
     }
 
     public function approve(User $user, VisitorPass $visitorPass): bool
