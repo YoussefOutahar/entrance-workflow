@@ -110,12 +110,45 @@ class VisitorPassWorkflowService
             return true;
         }
 
+        // For rejection, check specific permissions
+        if ($newStatus === 'declined') {
+            // Creator can always reject their own pass if not yet fully approved
+            if ($user->id === $visitorPass->created_by && !in_array($visitorPass->status, ['accepted', 'declined'])) {
+                return true;
+            }
+
+            // Chef from the same group as creator can reject
+            if ($user->hasRole('chef') && in_array($visitorPass->status, ['awaiting', 'pending_chef'])) {
+                $creator = User::find($visitorPass->created_by);
+                if (!$creator) {
+                    return false;
+                }
+
+                $creatorGroups = $creator->groups()->pluck('id')->toArray();
+                $chefGroups = $user->groups()->pluck('id')->toArray();
+
+                return count(array_intersect($creatorGroups, $chefGroups)) > 0;
+            }
+
+            // Service des Permis can reject at started stage
+            if ($visitorPass->status === 'started' && $user->can('review', $visitorPass)) {
+                return true;
+            }
+
+            // Barriere/Gendarmerie can reject at in_progress stage
+            if ($visitorPass->status === 'in_progress' && $user->can('approve', $visitorPass)) {
+                return true;
+            }
+
+            return false;
+        }
+
+        // Other transitions remain unchanged
         return match ($newStatus) {
             'pending_chef' => $user->can('submit', $visitorPass),
             'started' => $user->can('approve_chef', $visitorPass),
             'in_progress' => $user->can('review', $visitorPass), // Service des Permis review
             'accepted' => $user->can('approve', $visitorPass),   // Gendarmerie/Barrière approval
-            'declined' => $user->can('reject', $visitorPass),
             'awaiting' => $user->can('create', $visitorPass),
             default => false
         };

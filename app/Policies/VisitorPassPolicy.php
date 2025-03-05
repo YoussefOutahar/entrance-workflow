@@ -59,10 +59,41 @@ class VisitorPassPolicy
 
     public function reject(User $user, VisitorPass $visitorPass): bool
     {
-        // Any chef can reject
-        return $user->hasRole('chef') ||
-            $user->hasRole('admin') ||
-            $this->hasPermission($user, 'reject-visitor-pass');
+        // Admin can always reject
+        if ($user->hasRole('admin')) {
+            return true;
+        }
+
+        // Creator can reject their own pass
+        if ($user->id === $visitorPass->created_by) {
+            return true;
+        }
+
+        // Only chef from the same group as the creator can reject
+        if ($user->hasRole('chef')) {
+            // Get creator's groups
+            $creator = User::find($visitorPass->created_by);
+            if (!$creator) {
+                return false;
+            }
+
+            $creatorGroups = $creator->groups()->pluck('id')->toArray();
+            $chefGroups = $user->groups()->pluck('id')->toArray();
+
+            // Check if chef is in the same group as creator
+            return count(array_intersect($creatorGroups, $chefGroups)) > 0;
+        }
+
+        // For Service des Permis and Barriere/Gendarmerie, keep their specific roles
+        if ($visitorPass->status === 'started' && $this->hasPermission($user, 'review-visitor-pass')) {
+            return true; // Service des Permis can reject at started stage
+        }
+
+        if ($visitorPass->status === 'in_progress' && $this->hasPermission($user, 'approve-visitor-pass')) {
+            return true; // Barriere/Gendarmerie can reject at in_progress stage
+        }
+
+        return false;
     }
 
     public function view(User $user, VisitorPass $visitorPass): bool

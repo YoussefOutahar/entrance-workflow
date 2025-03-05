@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use App\Models\VisitorPass;
 use App\Services\VisitorPassWorkflowService;
 use Illuminate\Http\Request;
@@ -101,13 +102,69 @@ class VisitorPassWorkflowController extends Controller
             }
         }
 
-        // For any chef to reject
-        if ($user->can('reject', $visitorPass)) {
-            if (in_array($visitorPass->status, ['awaiting', 'pending_chef', 'started', 'in_progress'])) {
+        // For rejection:
+
+        // 1. Pass creator can reject their own pass if not yet fully approved
+        if ($user->id === $visitorPass->created_by && !in_array($visitorPass->status, ['accepted', 'declined'])) {
+            $actions[] = [
+                'action' => 'reject',
+                'available_statuses' => ['declined'],
+                'label' => 'Cancel My Pass'
+            ];
+        }
+
+        // 2. Chef from same group as creator can reject
+        if ($user->hasRole('chef') && in_array($visitorPass->status, ['awaiting', 'pending_chef'])) {
+            // Check if chef is from the same group as creator
+            $creator = User::find($visitorPass->created_by);
+            if ($creator) {
+                $creatorGroups = $creator->groups()->pluck('id')->toArray();
+                $chefGroups = $user->groups()->pluck('id')->toArray();
+
+                if (count(array_intersect($creatorGroups, $chefGroups)) > 0) {
+                    $actions[] = [
+                        'action' => 'reject',
+                        'available_statuses' => ['declined'],
+                        'label' => 'Reject Pass'
+                    ];
+                }
+            }
+        }
+
+        // 3. Service des Permis can reject at started stage
+        if ($user->can('review', $visitorPass) && $visitorPass->status === 'started') {
+            $actions[] = [
+                'action' => 'reject',
+                'available_statuses' => ['declined'],
+                'label' => 'Reject Pass'
+            ];
+        }
+
+        // 4. Barriere/Gendarmerie can reject at in_progress stage
+        if ($user->can('approve', $visitorPass) && $visitorPass->status === 'in_progress') {
+            $actions[] = [
+                'action' => 'reject',
+                'available_statuses' => ['declined'],
+                'label' => 'Reject Pass'
+            ];
+        }
+
+        // 5. Admin can reject at any stage
+        if ($user->hasRole('admin') && in_array($visitorPass->status, ['awaiting', 'pending_chef', 'started', 'in_progress'])) {
+            // Check if reject action is already added
+            $hasRejectAction = false;
+            foreach ($actions as $action) {
+                if ($action['action'] === 'reject') {
+                    $hasRejectAction = true;
+                    break;
+                }
+            }
+
+            if (!$hasRejectAction) {
                 $actions[] = [
                     'action' => 'reject',
                     'available_statuses' => ['declined'],
-                    'label' => 'Reject Pass'
+                    'label' => 'Reject Pass (Admin)'
                 ];
             }
         }
